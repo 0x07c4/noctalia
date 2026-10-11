@@ -1547,6 +1547,15 @@ void LauncherPanel::create() {
         .fillWidth = true,
     });
     navigationRow->addChild(
+        ui::segmented({
+            .out = &m_launcherNavigation,
+            .scale = scale,
+            .compact = true,
+            .surfaceOpacity = panelCardOpacity(),
+            .equalSegmentWidths = false,
+        })
+    );
+    navigationRow->addChild(
         ui::row(
             {
                 .align = FlexAlign::Center,
@@ -1583,7 +1592,7 @@ void LauncherPanel::create() {
             }),
             ui::button({
                 .out = &m_launcherGridButton,
-                .glyph = m_config != nullptr && m_config->config().shell.launcher.appGrid ? "layout-grid" : "list",
+                .glyph = m_config != nullptr && m_config->config().shell.launcher.appGrid ? "list" : "layout-grid",
                 .glyphSize = Style::fontSizeBody * scale,
                 .variant = ButtonVariant::Ghost,
                 .surfaceOpacity = panelCardOpacity(),
@@ -1609,15 +1618,6 @@ void LauncherPanel::create() {
                     },
             })
         )
-    );
-    navigationRow->addChild(
-        ui::segmented({
-            .out = &m_launcherNavigation,
-            .scale = scale,
-            .compact = true,
-            .surfaceOpacity = panelCardOpacity(),
-            .equalSegmentWidths = false,
-        })
     );
     if (m_launcherNavigation != nullptr && m_launcherNavigation->focusArea() != nullptr) {
       m_launcherNavigation->focusArea()->setTabFocusKey("launcher.navigation");
@@ -3093,7 +3093,7 @@ void LauncherPanel::updateLauncherOptionButtons() {
   }
   if (m_launcherGridButton != nullptr) {
     m_launcherGridButton->setSelected(false);
-    m_launcherGridButton->setGlyph(launcher.appGrid ? "layout-grid" : "list");
+    m_launcherGridButton->setGlyph(launcher.appGrid ? "list" : "layout-grid");
     m_launcherGridButton->setTooltip(
         i18n::tr(launcher.appGrid ? "launcher.browser.options.show-list" : "launcher.browser.options.show-grid")
     );
