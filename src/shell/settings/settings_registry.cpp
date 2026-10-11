@@ -1112,7 +1112,8 @@ namespace settings {
       entries.push_back(makeEntry(
           SettingsSection::Dock, "effects", tr("settings.schema.shared.background-opacity.label"),
           tr("settings.schema.dock.background-opacity.description"), path("background_opacity"),
-          sliderFor(dock.backgroundOpacity, noctalia::config::schema::kUnitRange, false), "alpha"
+          sliderFor(dock.backgroundOpacity, noctalia::config::schema::kUnitRange, false),
+          "alpha transparency translucent opacity"
       ));
       entries.push_back(makeEntry(
           SettingsSection::Dock, "effects", tr("settings.schema.shared.shadow.label"),
@@ -1190,7 +1191,7 @@ namespace settings {
         SettingsSection::Panels, "effects", tr("settings.schema.panels.transparency-mode.label"),
         tr("settings.schema.panels.transparency-mode.description"), {"shell", "panel", "transparency_mode"},
         asSegmented(enumSelect(kPanelTransparencyModes, cfg.shell.panel.transparencyMode)),
-        "glass opacity alpha translucent cards blur"
+        "glass alpha transparency translucent opacity cards blur"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Panels, "effects", tr("settings.schema.panels.borders.label"),
@@ -1883,7 +1884,8 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Shell, "general", tr("settings.schema.shell.settings-window-translucent.label"),
         tr("settings.schema.shell.settings-window-translucent.description"), {"shell", "settings_window_translucent"},
-        ToggleSetting{cfg.shell.settingsWindowTranslucent}, "settings window background transparency translucent"
+        ToggleSetting{cfg.shell.settingsWindowTranslucent},
+        "settings window background alpha transparency translucent opacity"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Shell, "general", tr("settings.schema.shell.settings-expand-all-groups.label"),
@@ -2245,7 +2247,8 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Osd, "osd", tr("settings.schema.shell.osd-background-opacity.label"),
         tr("settings.schema.shell.osd-background-opacity.description"), {"osd", "background_opacity"},
-        sliderFor(cfg.osd.backgroundOpacity, noctalia::config::schema::kUnitRange, false), "hud overlay popup opacity"
+        sliderFor(cfg.osd.backgroundOpacity, noctalia::config::schema::kUnitRange, false),
+        "hud overlay popup alpha transparency translucent opacity"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Osd, "osd", tr("settings.schema.shell.osd-border.label"),
@@ -3296,7 +3299,8 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Notifications, "toasts", tr("settings.schema.notifications.toast-opacity.label"),
         tr("settings.schema.notifications.toast-opacity.description"), {"notification", "background_opacity"},
-        sliderFor(cfg.notification.backgroundOpacity, noctalia::config::schema::kUnitRange, false), "popup"
+        sliderFor(cfg.notification.backgroundOpacity, noctalia::config::schema::kUnitRange, false),
+        "popup alpha transparency translucent opacity"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Notifications, "toasts", tr("settings.schema.notifications.border.label"),
@@ -3489,7 +3493,7 @@ namespace settings {
       entries.push_back(makeEntry(
           section, "effects", tr("settings.schema.shared.background-opacity.label"),
           tr("settings.schema.bar.background-opacity.description"), path("background_opacity"),
-          SliderSetting{bar.backgroundOpacity, 0.0F, 1.0F, 0.01F, false}, "alpha"
+          SliderSetting{bar.backgroundOpacity, 0.0F, 1.0F, 0.01F, false}, "alpha transparency translucent opacity"
       ));
       if (env.backgroundEffectBlurSupported) {
         entries.push_back(makeEntry(
@@ -3842,7 +3846,8 @@ namespace settings {
         entries.push_back(makeEntry(
             section, "effects", tr("settings.schema.shared.background-opacity.label"),
             tr("settings.schema.bar.background-opacity.description"), monitorPath("background_opacity"),
-            SliderSetting{ovr.backgroundOpacity.value_or(bar.backgroundOpacity), 0.0F, 1.0F, 0.01F, false}, "alpha"
+            SliderSetting{ovr.backgroundOpacity.value_or(bar.backgroundOpacity), 0.0F, 1.0F, 0.01F, false},
+            "alpha transparency translucent opacity"
         ));
         if (env.backgroundEffectBlurSupported) {
           entries.push_back(makeEntry(
