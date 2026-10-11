@@ -802,7 +802,34 @@
         "title": "Windows"
       }
     },
-    "search-placeholder": "Search applications…"
+    "search-placeholder": "Search applications…",
+    "browser": {
+      "actions": {
+        "power": "Power",
+        "settings": "Settings"
+      },
+      "navigation": {
+        "all-apps": "All Apps",
+        "categories": "Categories",
+        "pinned": "Pinned",
+        "providers": "Providers",
+        "recent": "Recent"
+      },
+      "options": {
+        "show-grid": "Show Grid View",
+        "show-list": "Show List View",
+        "sort-by-frequency": "Prioritize Frequent Results",
+        "use-default-order": "Use Default Ordering"
+      },
+      "sections": {
+        "all-apps": "All Apps",
+        "other-apps": "Other Apps",
+        "pinned": "Pinned",
+        "providers": "Providers",
+        "recent": "Recent",
+        "search-results": "Search Results"
+      }
+    }
   },
   "location": {
     "errors": {
@@ -1555,6 +1582,16 @@
         "top-right": "Top Right"
       },
       "shell": {
+        "launcher-default-view": {
+          "all-apps": "All Apps",
+          "categories": "Categories",
+          "pinned": "Pinned",
+          "recent": "Recent"
+        },
+        "launcher-search-position": {
+          "bottom": "Bottom",
+          "top": "Top"
+        },
         "panel-placement": {
           "attached": "Attached",
           "floating": "Floating"
@@ -2571,7 +2608,7 @@
           "label": "Show App Actions"
         },
         "launcher-app-grid": {
-          "description": "Show a grid of application icons with labels underneath when results are apps only",
+          "description": "Show applications, global search results, and the provider overview as icon grids",
           "label": "App Grid View"
         },
         "launcher-app-origin-indicator": {
@@ -2582,10 +2619,6 @@
           "description": "After calculator, emoji, and other copy activations, paste into the focused window (same shortcuts as clipboard auto-paste)",
           "label": "Auto-Paste"
         },
-        "launcher-categories": {
-          "description": "Display category filters in the launcher; reveal with F6, then cycle with F6 and Shift+F6",
-          "label": "Show Categories"
-        },
         "launcher-compact": {
           "description": "Use smaller icons and tighter result rows",
           "label": "Compact Rows"
@@ -2593,6 +2626,26 @@
         "launcher-currency-exchange": {
           "description": "Fetch rates from third party online sources",
           "label": "Currency Exchange Conversion"
+        },
+        "launcher-default-view": {
+          "description": "Choose the view shown when the launcher opens without a search",
+          "label": "Default View"
+        },
+        "launcher-width": {
+          "description": "Set the launcher panel width",
+          "label": "Launcher Width"
+        },
+        "launcher-search-position": {
+          "description": "Place the launcher toolbar at the top or bottom",
+          "label": "Toolbar Position"
+        },
+        "launcher-show-session-button": {
+          "description": "Show a shortcut to the configured session actions",
+          "label": "Show Session Button"
+        },
+        "launcher-show-settings-button": {
+          "description": "Show a shortcut to Noctalia Settings",
+          "label": "Show Settings Button"
         },
         "launcher-global-calculator": {
           "description": "Also show calculator results in unprefixed search",
@@ -2623,7 +2676,7 @@
           "label": "Panels Ignored"
         },
         "launcher-pinned-apps": {
-          "description": "Desktop entry IDs of apps pinned to the launcher; they appear first when the launcher opens",
+          "description": "Desktop entry IDs shown in manual order in the Pinned view",
           "label": "Pinned Apps"
         },
         "launcher-prefix-calculator": {
@@ -2668,7 +2721,7 @@
           "label": "Show App Icons"
         },
         "launcher-sort-by-usage": {
-          "description": "Boost frequently used apps toward the top and show a Recently Used category filter",
+          "description": "Prioritize frequently used results in normal browsing and search",
           "label": "Sort by Usage"
         },
         "list-item-background": {

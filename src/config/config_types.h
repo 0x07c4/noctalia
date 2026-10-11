@@ -1097,15 +1097,45 @@ struct ShellConfig {
   // Launcher behavior/appearance. Panel placement for the launcher surface stays
   // under [shell.panel] (launcher_placement/position/open_near_click_launcher),
   // parallel to every other surface.
+  enum class LauncherSearchPosition : std::uint8_t {
+    Top = 0,
+    Bottom = 1,
+  };
+
+  static constexpr EnumOption<LauncherSearchPosition> kLauncherSearchPositions[] = {
+      {LauncherSearchPosition::Top, "top", "settings.options.shell.launcher-search-position.top"},
+      {LauncherSearchPosition::Bottom, "bottom", "settings.options.shell.launcher-search-position.bottom"},
+  };
+
+  enum class LauncherDefaultView : std::uint8_t {
+    Recent = 0,
+    Pinned = 1,
+    AllApps = 2,
+    Categories = 3,
+  };
+
+  static constexpr EnumOption<LauncherDefaultView> kLauncherDefaultViews[] = {
+      {LauncherDefaultView::Recent, "recent", "settings.options.shell.launcher-default-view.recent"},
+      {LauncherDefaultView::Pinned, "pinned", "settings.options.shell.launcher-default-view.pinned"},
+      {LauncherDefaultView::AllApps, "all_apps", "settings.options.shell.launcher-default-view.all-apps"},
+      {LauncherDefaultView::Categories, "categories", "settings.options.shell.launcher-default-view.categories"},
+  };
+
   struct LauncherConfig {
-    bool categories = true;
+    static constexpr std::int32_t kDefaultWidth = 760;
+
+    std::int32_t width = kDefaultWidth;
+    LauncherSearchPosition searchPosition = LauncherSearchPosition::Bottom;
+    LauncherDefaultView defaultView = LauncherDefaultView::Recent;
+    bool showSettingsButton = true;
+    bool showSessionButton = true;
     bool showIcons = true;
     bool showAppOriginIndicator = true;
     bool compact = false;
     bool appGrid = false;
     bool showAppActions = false;
     bool sortByUsage = true;
-    // Desktop entry IDs shown first in the launcher when it opens without a query.
+    // Desktop entry IDs shown in manual order in the Pinned view.
     std::vector<std::string> pinned;
     /// When true, refresh currency exchange rates from libqalculate's online sources.
     bool fetchExchangeRates = true;

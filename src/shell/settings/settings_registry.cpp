@@ -1296,10 +1296,38 @@ namespace settings {
         "settings.schema.panels.open-near-click-launcher.description", cfg.shell.panel.openNearClickLauncher,
         &ShellConfig::PanelConfig::launcherPlacement, &ShellConfig::PanelConfig::launcherPosition
     ));
+    {
+      auto width = sliderFor(cfg.shell.launcher.width, noctalia::config::schema::kLauncherWidthRange, true);
+      width.valueSuffix = "px";
+      entries.push_back(makeEntry(
+          SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-width.label"),
+          tr("settings.schema.panels.launcher-width.description"), {"shell", "launcher", "width"}, std::move(width),
+          "launcher panel width size"
+      ));
+    }
     entries.push_back(makeEntry(
-        SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-categories.label"),
-        tr("settings.schema.panels.launcher-categories.description"), {"shell", "launcher", "categories"},
-        ToggleSetting{cfg.shell.launcher.categories}, "launcher categories filter"
+        SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-search-position.label"),
+        tr("settings.schema.panels.launcher-search-position.description"), {"shell", "launcher", "search_position"},
+        asSegmented(enumSelect(ShellConfig::kLauncherSearchPositions, cfg.shell.launcher.searchPosition)),
+        "launcher search toolbar position top bottom"
+    ));
+    entries.push_back(makeEntry(
+        SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-default-view.label"),
+        tr("settings.schema.panels.launcher-default-view.description"), {"shell", "launcher", "default_view"},
+        enumSelect(ShellConfig::kLauncherDefaultViews, cfg.shell.launcher.defaultView),
+        "launcher default view recent pinned all apps categories"
+    ));
+    entries.push_back(makeEntry(
+        SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-show-settings-button.label"),
+        tr("settings.schema.panels.launcher-show-settings-button.description"),
+        {"shell", "launcher", "show_settings_button"}, ToggleSetting{cfg.shell.launcher.showSettingsButton},
+        "launcher settings shortcut button"
+    ));
+    entries.push_back(makeEntry(
+        SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-show-session-button.label"),
+        tr("settings.schema.panels.launcher-show-session-button.description"),
+        {"shell", "launcher", "show_session_button"}, ToggleSetting{cfg.shell.launcher.showSessionButton},
+        "launcher session power shortcut button"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-show-icons.label"),
