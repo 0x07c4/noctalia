@@ -1318,6 +1318,12 @@ namespace settings {
         "launcher default view recent pinned all apps categories"
     ));
     entries.push_back(makeEntry(
+        SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-category-icons-only.label"),
+        tr("settings.schema.panels.launcher-category-icons-only.description"),
+        {"shell", "launcher", "category_icons_only"}, ToggleSetting{cfg.shell.launcher.categoryIconsOnly},
+        "launcher app category icons labels text"
+    ));
+    entries.push_back(makeEntry(
         SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-show-settings-button.label"),
         tr("settings.schema.panels.launcher-show-settings-button.description"),
         {"shell", "launcher", "show_settings_button"}, ToggleSetting{cfg.shell.launcher.showSettingsButton},

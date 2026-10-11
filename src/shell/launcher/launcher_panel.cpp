@@ -2854,11 +2854,12 @@ void LauncherPanel::rebuildCategoryFilter() {
   }
 
   m_categoryFilter->clearOptions();
+  const bool categoryIconsOnly = m_config != nullptr && m_config->config().shell.launcher.categoryIconsOnly;
   if (m_browserMode) {
     std::size_t selectedCategory = 0;
     for (std::size_t i = 0; i < m_currentCategories.size(); ++i) {
       const LauncherCategory& category = m_currentCategories[i];
-      m_categoryFilter->addOption(category.label, category.glyphName);
+      m_categoryFilter->addOption(categoryIconsOnly ? "" : category.label, category.glyphName);
       m_categoryFilter->setOptionTooltip(i, category.label);
       if (category.label == m_activeCategory) {
         selectedCategory = i;
@@ -2882,10 +2883,12 @@ void LauncherPanel::rebuildCategoryFilter() {
         m_categoryFilter->addOption("", "history");
         m_categoryFilter->setOptionTooltip(i, i18n::tr("launcher.categories.recently-used"));
         break;
-      case Category:
-        m_categoryFilter->addOption("", m_currentCategories[slot.categoryIndex].glyphName);
+      case Category: {
+        const LauncherCategory& category = m_currentCategories[slot.categoryIndex];
+        m_categoryFilter->addOption(categoryIconsOnly ? "" : category.label, category.glyphName);
         m_categoryFilter->setOptionTooltip(i, m_currentCategories[slot.categoryIndex].label);
         break;
+      }
       }
     }
     m_categoryFilter->setSelectedIndex(m_activeCategorySlotIndex);

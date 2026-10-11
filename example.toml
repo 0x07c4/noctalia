@@ -83,6 +83,7 @@ open_near_click_session        = false # for attached/floating placement, follow
 width = 760                              # panel width in pixels (560–1200)
 search_position = "top"                  # top | bottom; whole launcher toolbar position
 default_view   = "recent"                # recent | pinned | all_apps | categories
+category_icons_only = false             # hide app category labels; keep names in hover tooltips
 show_settings_button = true              # show the Settings shortcut beside search
 show_session_button = true               # show the session-actions shortcut beside search
 show_icons    = true                    # show application icons in launcher results

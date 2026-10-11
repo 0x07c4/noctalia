@@ -2619,6 +2619,10 @@
           "description": "After calculator, emoji, and other copy activations, paste into the focused window (same shortcuts as clipboard auto-paste)",
           "label": "Auto-Paste"
         },
+        "launcher-category-icons-only": {
+          "description": "Show only icons for app categories, with full names in hover tooltips",
+          "label": "Category Icons Only"
+        },
         "launcher-compact": {
           "description": "Use smaller icons and tighter result rows",
           "label": "Compact Rows"
