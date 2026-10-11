@@ -190,8 +190,7 @@ namespace {
     return std::ceil(paddingY * 2.0F + iconSize + gap + labelHeight);
   }
 
-  [[nodiscard]] LauncherListStyle
-  launcherListStyleFrom(const ConfigService* config, float scale, float cardOpacity, bool browser) {
+  [[nodiscard]] LauncherListStyle launcherListStyleFrom(const ConfigService* config, float scale, float cardOpacity) {
     LauncherListStyle style{.scale = scale, .appIconColorizeTint = std::nullopt, .listItemBackground = std::nullopt};
     if (config != nullptr) {
       const auto& launcher = config->config().shell.launcher;
@@ -201,8 +200,6 @@ namespace {
       style.appIconColorizeTint = effectiveShellAppIconColorizationTint(config->config().shell);
       if (config->config().shell.panel.listItemBackground) {
         style.listItemBackground = colorSpecFromRole(ColorRole::SurfaceVariant, cardOpacity);
-      } else if (browser) {
-        style.listItemBackground = colorSpecFromRole(ColorRole::SurfaceVariant, cardOpacity * 0.45F);
       }
     }
     return style;
@@ -1543,7 +1540,6 @@ void LauncherPanel::create() {
   if (m_browserMode) {
     body->setPadding(Style::spaceSm * scale);
     body->setGap(Style::spaceSm * scale);
-    body->setCardStyle(scale, panelCardOpacity());
     auto navigationRow = ui::row({
         .align = FlexAlign::Center,
         .justify = FlexJustify::SpaceBetween,
@@ -1637,7 +1633,7 @@ void LauncherPanel::create() {
       .flexGrow = 1.0F,
   });
 
-  const LauncherListStyle initialStyle = launcherListStyleFrom(m_config, scale, panelCardOpacity(), m_browserMode);
+  const LauncherListStyle initialStyle = launcherListStyleFrom(m_config, scale, panelCardOpacity());
   m_listAdapter = std::make_unique<LauncherResultAdapter>(initialStyle, m_asyncTextures);
   m_gridAdapter = std::make_unique<LauncherAppGridAdapter>(initialStyle, m_asyncTextures);
   m_listAdapter->setResults(&m_results);
@@ -1920,7 +1916,7 @@ void LauncherPanel::refreshLauncherAppIconColorization() {
   if (m_listAdapter == nullptr || m_gridAdapter == nullptr || m_grid == nullptr) {
     return;
   }
-  const LauncherListStyle style = launcherListStyleFrom(m_config, contentScale(), panelCardOpacity(), m_browserMode);
+  const LauncherListStyle style = launcherListStyleFrom(m_config, contentScale(), panelCardOpacity());
   m_listAdapter->setListStyle(style);
   m_gridAdapter->setListStyle(style);
   if (m_launcherSectionsAdapter != nullptr) {
@@ -2038,7 +2034,7 @@ void LauncherPanel::syncLauncherViewLayout(Renderer* renderer) {
 
   const bool useGrid = shouldUseAppGrid();
   const float scale = contentScale();
-  const LauncherListStyle style = launcherListStyleFrom(m_config, scale, panelCardOpacity(), m_browserMode);
+  const LauncherListStyle style = launcherListStyleFrom(m_config, scale, panelCardOpacity());
   m_grid->setScale(scale);
   m_listAdapter->setListStyle(style);
   m_gridAdapter->setListStyle(style);
@@ -2095,10 +2091,12 @@ void LauncherPanel::syncLauncherListStyle() {
   const bool showAppOriginIndicator = m_config == nullptr || m_config->config().shell.launcher.showAppOriginIndicator;
   const bool compact = m_config != nullptr && m_config->config().shell.launcher.compact;
   const bool appGrid = m_config != nullptr && m_config->config().shell.launcher.appGrid;
+  const bool listItemBackground = m_config != nullptr && m_config->config().shell.panel.listItemBackground;
   if (showIcons == m_launcherShowIcons
       && showAppOriginIndicator == m_launcherShowAppOriginIndicator
       && compact == m_launcherCompact
       && appGrid == m_launcherAppGrid
+      && listItemBackground == m_launcherListItemBackground
       && m_listAdapter != nullptr) {
     return;
   }
@@ -2106,6 +2104,7 @@ void LauncherPanel::syncLauncherListStyle() {
   m_launcherShowAppOriginIndicator = showAppOriginIndicator;
   m_launcherCompact = compact;
   m_launcherAppGrid = appGrid;
+  m_launcherListItemBackground = listItemBackground;
   m_launcherRowHeight = 0.0F;
   syncLauncherViewLayout(nullptr);
   rebuildLauncherSections();
@@ -2122,7 +2121,7 @@ void LauncherPanel::updateLauncherGridMetrics(Renderer& renderer) {
     return;
   }
 
-  const LauncherListStyle style = launcherListStyleFrom(m_config, contentScale(), panelCardOpacity(), m_browserMode);
+  const LauncherListStyle style = launcherListStyleFrom(m_config, contentScale(), panelCardOpacity());
   float cellHeight = launcherRowHeight(renderer, style);
   if (m_usingAppGrid) {
     float wrapWidth = 0.0F;
@@ -2162,9 +2161,6 @@ void LauncherPanel::onPanelCardOpacityChanged(float opacity) {
   }
   if (m_launcherToolbar != nullptr) {
     m_launcherToolbar->setCardStyle(contentScale(), opacity);
-  }
-  if (m_browserMode && m_body != nullptr) {
-    m_body->setCardStyle(contentScale(), opacity);
   }
   if (m_launcherSections != nullptr) {
     m_launcherSections->notifyDataChanged();
@@ -2655,7 +2651,7 @@ void LauncherPanel::onInputChanged(const std::string& text) {
   }
 
   const int iconTargetSize = static_cast<int>(
-      std::round(launcherIconSize(launcherListStyleFrom(m_config, contentScale(), panelCardOpacity(), m_browserMode)))
+      std::round(launcherIconSize(launcherListStyleFrom(m_config, contentScale(), panelCardOpacity())))
   );
   for (auto& result : m_allResults) {
     if (result.iconPath.empty() && !result.iconName.empty()) {
