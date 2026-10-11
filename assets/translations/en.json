@@ -1716,27 +1716,27 @@
         "installed": "Installed",
         "loading": "Loading catalog…",
         "no-readme": "No description available.",
+        "not-listed": "Not listed",
         "open-page": "Open plugin page on noctalia.dev",
         "open-source": "Open plugin source repository",
+        "recommend": "Recommend",
+        "recommendation-error": "The change was not confirmed. Your previous recommendation is unchanged. Retry the same change to reconcile it.",
+        "recommendation-not-recommendable": "This plugin cannot accept this recommendation.",
+        "recommendation-pending": "Sending recommendation…",
+        "recommendation-protocol-error": "The service returned an unexpected response. Your previous recommendation is unchanged.",
+        "recommendation-rate-limited": "Too many requests. Wait before retrying this change.",
+        "recommendation-retry": "Retry recommendation change",
+        "recommendation-state-error": "Recommendation state could not be read or saved. Check state.toml before retrying.",
+        "recommendation-unavailable": "Recommendations are temporarily unavailable. Your previous recommendation is unchanged. You can retry shortly.",
+        "remove-recommendation": "Remove recommendation",
         "results-count": "{count} plugins",
         "search-placeholder": "Search plugins…",
         "sort-added-at-asc": "Sort by date added (oldest first)",
         "sort-added-at-desc": "Sort by date added (newest first)",
         "sort-most-recommended": "Most recommended",
-        "sort-trending": "Trending",
-        "recommend": "Recommend",
-        "remove-recommendation": "Remove recommendation",
-        "not-listed": "Not listed",
-        "recommendation-pending": "Sending recommendation…",
-        "recommendation-retry": "Retry recommendation change",
-        "recommendation-protocol-error": "The service returned an unexpected response. Your previous recommendation is unchanged.",
-        "recommendation-error": "The change was not confirmed. Your previous recommendation is unchanged. Retry the same change to reconcile it.",
-        "recommendation-not-recommendable": "This plugin cannot accept this recommendation.",
-        "recommendation-rate-limited": "Too many requests. Wait before retrying this change.",
-        "recommendation-state-error": "Recommendation state could not be read or saved. Check state.toml before retrying.",
-        "recommendation-unavailable": "Recommendations are temporarily unavailable. Your previous recommendation is unchanged. You can retry shortly.",
         "sort-name-asc": "Sort by name (A-Z)",
         "sort-name-desc": "Sort by name (Z-A)",
+        "sort-trending": "Trending",
         "sort-updated-at-asc": "Sort by date updated (oldest first)",
         "sort-updated-at-desc": "Sort by date updated (newest first)",
         "source-all": "All sources",
@@ -2518,10 +2518,6 @@
         }
       },
       "panels": {
-        "borders": {
-          "description": "Draw an outline on floating panels",
-          "label": "Borders"
-        },
         "border-color": {
           "description": "Outline color for floating panels; a theme role name follows the active theme, or pick a custom color",
           "label": "Border Color"
@@ -2529,6 +2525,10 @@
         "border-width": {
           "description": "Outline width for floating panels in pixels, 0 hides the stroke",
           "label": "Border Width"
+        },
+        "borders": {
+          "description": "Draw an outline on floating panels",
+          "label": "Borders"
         },
         "control-center-sidebar": {
           "description": "Choose how to display the sidebar",
@@ -4356,13 +4356,13 @@
           "description": "Tray item IDs to hide",
           "label": "Hidden Items"
         },
-        "hide-album-art": {
-          "description": "Hide the album artwork",
-          "label": "Hide Album Art"
-        },
         "hidden-workspaces": {
           "description": "Workspace names whose windows are left out of the taskbar unless that workspace is active",
           "label": "Hidden Workspaces"
+        },
+        "hide-album-art": {
+          "description": "Hide the album artwork",
+          "label": "Hide Album Art"
         },
         "hide-artist": {
           "description": "Hide the artist name and only show the track title",

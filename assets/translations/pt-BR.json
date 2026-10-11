@@ -226,7 +226,9 @@
       "auto": "Automático",
       "custom": "Personalizado",
       "inherit": "Herdar",
-      "off": "Desligada"
+      "inherit-value": "Herdar ({value})",
+      "off": "Desligada",
+      "on": "Ligado"
     }
   },
   "control-center": {
@@ -551,7 +553,10 @@
         "select-sticker-image": "Selecionar imagem de sticker"
       },
       "settings": {
+        "album-art-background": "Fundo da Arte de Álbum",
+        "album-art-blur": "Desfoque da Arte de Álbum",
         "aspect-ratio": "Proporção",
+        "audio-visualizer": "Visualizador de Áudio",
         "background": "Plano de Fundo",
         "background-color": "Cor",
         "background-opacity": "Opacidade",
@@ -888,6 +893,15 @@
       "lockscreen-widgets-editor-blocked-locked": "Desbloqueie a sessão antes de editar os widgets da tela de bloqueio.",
       "lockscreen-widgets-editor-enabled": "O editor de widgets da tela de bloqueio está ligado. Mude para um espaço de trabalho vazio para que as janelas abertas não cubram o editor.",
       "mpris-disabled": "MPRIS desabilitado",
+      "network": "Rede",
+      "network-connect-failed-auth": "A senha foi rejeitada o não fornecida.",
+      "network-connect-failed-generic": "NetworkManager não conseguiu completar a conexão.",
+      "network-connect-failed-ip": "Conectado à rede mas não foi possível obter um endereço IP.",
+      "network-connect-failed-no-reply": "O NetworkManger não respondeu. Uma requisição de autorização talvez esteja aguardando sem um agente polkit para respondê-la.",
+      "network-connect-failed-not-found": "A rede não está mais ao alcance.",
+      "network-connect-failed-permission": "Sem autorização para mudar conexões de rede. Habilite o agente polkit nas Configurações -> Segurança",
+      "network-connect-failed-timeout": "A rede não respondeu a tempo.",
+      "network-connect-failed-title": "Não foi possível conectar a {ssid}",
       "polkit-agent": "Agente de Autenticação",
       "polkit-no-session": "Agente Polkit precisa de logind, elogind or XDG_SESSION_ID. Em configurações que utilizam apenas o seatd, ele não consegue se registrar para solicitações gráficas. Use o pkexec no terminal para sincronizar o greeter ou instale o elogind para autenticação durante a sessão.",
       "screen-time-reset": "Tempo de Tela",
@@ -1701,14 +1715,27 @@
         "installed": "Instalado",
         "loading": "Carregando catálogo...",
         "no-readme": "Nenhuma descrição disponível.",
+        "not-listed": "Não listado",
         "open-page": "Abrir página de plugin em noctalia.dev",
         "open-source": "Abrir repositório fonte de plugin",
+        "recommend": "Recomendar",
+        "recommendation-error": "A mudança não foi confirmada. Sua recomendação anterior não foi modificada. Tente novamente a mesma mudança para que seja reconciliada.",
+        "recommendation-not-recommendable": "O plugin não pode aceitar esta recomendação.",
+        "recommendation-pending": "Enviando recomendação...",
+        "recommendation-protocol-error": "O serviço retornou uma resposta inesperada. Sua recomendação anterior não foi modificada.",
+        "recommendation-rate-limited": "Muitas requisições. Aguarde antes de tentar novamente esta mudança.",
+        "recommendation-retry": "Tentar novamente a mudança de recomendação",
+        "recommendation-state-error": "O estado da recomendação não pôde ser lida ou salva. Verifique state.toml antes de tentar novamente.",
+        "recommendation-unavailable": "Recomendações estão temporariamente indisponíveis. Sua recomendação anterior não foi modificada. Você pode tentar novamente em breve.",
+        "remove-recommendation": "Remover recomendação",
         "results-count": "{count} plugins",
         "search-placeholder": "Busque plugins...",
         "sort-added-at-asc": "Ordenar por data (mais antigos primeiro)",
         "sort-added-at-desc": "Ordenar por data (mais recentes primeiro)",
+        "sort-most-recommended": "Mais recomendado",
         "sort-name-asc": "Ordenar por nome (A-Z)",
         "sort-name-desc": "Ordenar por nome (Z-A)",
+        "sort-trending": "Em Alta",
         "sort-updated-at-asc": "Ordenar por data de atualização (mais antigos primeiro)",
         "sort-updated-at-desc": "Ordenar por data de atualização (mais recentes primeiro)",
         "source-all": "Todas fontes",
@@ -1974,6 +2001,10 @@
         "show-on-workspace-switch": {
           "description": "Mostra brevemente a barra quando o espaço de trabalho ativo é alterado",
           "label": "Mostrar na Transição de Espaço de Trabalho"
+        },
+        "show-tooltip": {
+          "description": "Mostrar dicas ao passar o mouse sobre os widgets nesta barra; a configuração “Mostrar Dica” do próprio widget tem prioridade sobre esta",
+          "label": "Mostrar Dicas"
         },
         "start-widgets": {
           "description": "Widgets no lado inicial (esquerdo/superior) da barra",
@@ -2349,6 +2380,10 @@
           "description": "Desbloquear com um leitor de impressão digital por meio do fprintd, junto com uma da senha digitada",
           "label": "Desbloquear com Impressão Digital"
         },
+        "grace-period": {
+          "description": "Permitir desbloqueio sem senha por esta quantidade de segundos depois de bloquear; qualquer tecla pressionada ou movimento do mouse desbloqueará. Defina como 0 para sempre requisitar a senha",
+          "label": "Período de Carência"
+        },
         "lock-before-suspend": {
           "description": "Bloquear a sessão antes de dormir (fechando tampa, systemctl suspend, hibernate); Ações de bloquear & suspender ainda bloquearão primeiro.",
           "label": "Bloquear Antes de Suspender"
@@ -2478,6 +2513,14 @@
         }
       },
       "panels": {
+        "border-color": {
+          "description": "Cor de contorno para painéis flutuantes; o nome da função do tema segue o tema ativo, ou escolha uma cor personalizada ",
+          "label": "Cor da Borda"
+        },
+        "border-width": {
+          "description": "Espessura do contorno para painéis flutuantes em pixels, 0 oculta o traço",
+          "label": "Largura da Borda"
+        },
         "borders": {
           "description": "Desenhe um contorno nos painéis flutuantes",
           "label": "Bordas"
@@ -2705,6 +2748,10 @@
         "transparency-mode": {
           "description": "Estilo vidro dos painéis, incluindo a opacidade dos painéis flutuantes e a translucência dos cards",
           "label": "Transparência"
+        },
+        "wallpaper-show-names": {
+          "description": "Legende cada miniatura com o nome do arquivo no seletor de papéis de parede.",
+          "label": "Mostrar Nomes de Arquivos"
         }
       },
       "power": {
@@ -2748,6 +2795,14 @@
           "description-opening": "Credenciais para o calendário estão sendo abertas através do Secret Service",
           "description-unavailable": "Nenhum provedor de Secret Service disponível nesta sessão",
           "label": "Armazenamento de Credenciais de Calendário"
+        },
+        "calendar-dedupe-events": {
+          "description": "Agrupar um evento que aparece em mais de um dos seus calendários em uma única entrada",
+          "label": "Mesclar Eventos Duplicados"
+        },
+        "calendar-dedupe-ignore-patterns": {
+          "description": "As expressões regulares são removidas do título de um evento antes da comparação; assim, títulos que diferem apenas em uma parte correspondente ainda são unificados",
+          "label": "Ignorar no título ao mesclar"
         },
         "calendar-digest-time": {
           "description": "Horário do dia para uma única notificação listando todos os eventos do dia. Deixe em branco para desabilitar.",
@@ -2857,8 +2912,20 @@
           "label": "Som da Notificação",
           "placeholder": "/path/to/sound.wav"
         },
+        "notification-sounds": {
+          "description": "Tocar um som quando notificações chegarem",
+          "label": "Sons de Notificação"
+        },
+        "power-sounds": {
+          "description": "Tocar um som quando o carregador conectar ou desconectar",
+          "label": "Sons de Energia"
+        },
+        "screenshot-sounds": {
+          "description": "Tocar um som ao fazer uma captura",
+          "label": "Sons de Captura de Tela"
+        },
         "shell-sounds": {
-          "description": "Tocar efeitos de som para eventos do shell",
+          "description": "Alternador mestre para efeitos sonoros do shell",
           "label": "Sons do Shell"
         },
         "sound-theme": {
@@ -2931,6 +2998,10 @@
           "description": "Arquivo de áudio usado para feedback de volume",
           "label": "Som de Mudança de Volume",
           "placeholder": "/path/to/sound.wav"
+        },
+        "volume-sounds": {
+          "description": "Tocar um som quando o volume de entrada ou de saída muda",
+          "label": "Volume dos Sons"
         },
         "weather": {
           "description": "Habilitar o serviço de clima via open-meteo.com",
@@ -4280,6 +4351,10 @@
           "description": "IDs de itens da bandeja para ocultar",
           "label": "Ocultar Itens"
         },
+        "hidden-workspaces": {
+          "description": "Nomes de espaços de trabalho cujas janelas não aparecem na barra de tarefas, a menos que esse espaço de trabalho esteja ativo",
+          "label": "Espaços de Trabalho Ocultos"
+        },
         "hide-album-art": {
           "description": "Ocultar a arte do álbum",
           "label": "Ocultar Arte de Álbum"
@@ -4312,6 +4387,10 @@
         "hide-when-full": {
           "description": "Oculte o widget da bateria quando estiver totalmente carregado",
           "label": "Ocultar Quando Cheia"
+        },
+        "hide-when-idle": {
+          "description": "Ocultar o widget enquanto o reprodutor MPRIS estiver em pausa ou parado",
+          "label": "Ocultar Quando Ocioso"
         },
         "hide-when-inactive": {
           "description": "Ocultar o widget de microfone enquanto não houver aplicação capturando áudio",
@@ -4573,8 +4652,8 @@
           "label": "Exibir Temperatura"
         },
         "show-tooltip": {
-          "description": "Mostrar o nome completo de um espaço de trabalho ao passar o ponteiro do mouse sobre, quando a pílula não estiver mostrando",
-          "label": "Mostrar Dica do Nome"
+          "description": "Mostrar a dica deste widget ao passar sobre",
+          "label": "Mostrar Dica"
         },
         "show-unlock-hint": {
           "description": "Exibir o cartão de status acima da caixa de login para dicas de desbloqueio e caixas de diálogo de autenticação; Erros e avisos de Caps Lock ainda aparecem quando isto está desligado",
