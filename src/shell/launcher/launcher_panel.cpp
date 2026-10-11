@@ -1982,7 +1982,7 @@ void LauncherPanel::animateResultsTransition() {
     m_resultsViewport->setPosition(m_resultsTransitionBaseX, m_resultsViewport->y());
   }
   constexpr float startOpacity = 0.78F;
-  const auto duration = static_cast<float>(Style::animFast);
+  const auto duration = static_cast<float>(Style::animNormal);
   Flex* const viewport = m_resultsViewport;
   const float visualDirection = transition == ResultsTransition::NavigationForward ? 1.0F : -1.0F;
   const float direction = Style::rtl() ? -visualDirection : visualDirection;
