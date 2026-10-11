@@ -37,16 +37,17 @@ int main() {
   const fs::path deniedIcon = deniedDataHome / "private-icon.svg";
   fs::create_directories(iconDir);
   fs::create_directories(bitmapIconDir);
-  std::ofstream(iconThemeRoot / "index.theme") << "[Icon Theme]\n"
-                                                  "Directories = 48x48/apps, scalable/apps\n"
-                                                  "Inherits = noctalia-bare-test\n"
-                                                  "[48x48/apps]\n"
-                                                  "Size = 48\n"
-                                                  "Type = Fixed\n"
-                                                  "[scalable/apps]\n"
-                                                  "Size = 64\n"
-                                                  "Type = Scalable\n"
-                                                  "MaxSize = 128\n";
+  const std::string indexContents = "[Icon Theme]\n"
+                                    "Directories = 48x48/apps, scalable/apps\n"
+                                    "Inherits = noctalia-bare-test\n"
+                                    "[48x48/apps]\n"
+                                    "Size = 48\n"
+                                    "Type = Fixed\n"
+                                    "[scalable/apps]\n"
+                                    "Size = 64\n"
+                                    "Type = Scalable\n"
+                                    "MaxSize = 128\n";
+  std::ofstream(iconThemeRoot / "index.theme") << indexContents;
 
   // An inherited theme with no index.theme exercises the fallback search paths
   // (theme root and 512x512/apps) that only apply to index-less themes.
@@ -92,8 +93,14 @@ int main() {
   }
 
   IconResolver resolver(true);
-  const auto initialIconDirModified = fs::last_write_time(iconDir);
-
+  const auto initialGeneration = IconResolver::themeGeneration();
+  std::ofstream(iconThemeRoot / "index.theme") << indexContents;
+  ok = expect(!IconResolver::checkThemePlanChanged(), "an equivalent theme metadata rewrite should be ignored") && ok;
+  ok = expect(
+           IconResolver::themeGeneration() == initialGeneration,
+           "an equivalent theme metadata rewrite should preserve the theme generation"
+       )
+      && ok;
   std::fflush(stderr);
   (void)::dup2(savedStderr, STDERR_FILENO);
   ::close(savedStderr);
@@ -140,12 +147,10 @@ int main() {
   const fs::path polledIcon = iconDir / "polled-icon.svg";
   ok = expect(resolver.resolve("polled-icon", 32).empty(), "second initial icon miss should be cached") && ok;
   std::ofstream(polledIcon) << "<svg/>";
-  // Some filesystems do not expose a distinct directory mtime for rapid changes.
-  fs::last_write_time(iconDir, initialIconDirModified);
-  ok = expect(IconResolver::checkThemeChanged(), "theme poll should detect icon directory changes") && ok;
+  IconResolver::invalidateThemeContent();
   ok = expect(
            resolver.resolve("polled-icon", 32) == polledIcon.string(),
-           "theme generation change should invalidate cached misses"
+           "icon content invalidation should clear cached misses"
        )
       && ok;
 

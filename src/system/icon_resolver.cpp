@@ -5,10 +5,8 @@
 #include "util/string_utils.h"
 
 #include <algorithm>
-#include <chrono> // IWYU pragma: keep
 #include <cstdlib>
 #include <filesystem>
-#include <format>
 #include <gio/gio.h>
 #include <memory>
 #include <mutex>
@@ -27,10 +25,12 @@ namespace {
 
   struct IconThemePlan {
     std::vector<std::string> baseDirs;
+    std::vector<std::string> themeRoots;
     std::vector<IconSearchDir> searchDirs;
     std::vector<std::string> pixmapDirs;
     std::string activeTheme;
-    std::string signature;
+    std::string planSignature;
+    std::string contentSignature;
   };
 
   void pushUniqueDir(std::vector<IconSearchDir>& dirs, IconSearchDir dir) {
@@ -166,38 +166,59 @@ namespace {
     return roots;
   }
 
-  std::string signatureFor(const IconThemePlan& plan) {
+  void appendPathIdentity(std::string& signature, std::string_view kind, const std::string& path) {
+    signature += kind;
+    signature += path;
+    signature += ':';
+    std::error_code ec;
+    const auto canonical = fs::weakly_canonical(path, ec);
+    signature += ec ? "missing" : canonical.string();
+    signature += '\n';
+  }
+
+  std::string planSignatureFor(const IconThemePlan& plan) {
     std::string signature = plan.activeTheme;
     signature += '\n';
-    auto appendPath = [&](std::string_view kind, const std::string& path) {
-      signature += kind;
+    for (const auto& root : plan.baseDirs) {
+      appendPathIdentity(signature, "base:", root);
+    }
+    for (const auto& root : plan.themeRoots) {
+      appendPathIdentity(signature, "theme:", root);
+    }
+    for (const auto& dir : plan.searchDirs) {
+      signature += "search:";
+      signature += dir.path;
+      signature += ':';
+      signature += std::to_string(dir.size);
+      signature += dir.scalable ? ":scalable:" : ":fixed:";
+      signature += dir.theme;
+      signature += '\n';
+    }
+    for (const auto& dir : plan.pixmapDirs) {
+      appendPathIdentity(signature, "pixmap:", dir);
+    }
+    return signature;
+  }
+
+  std::string contentSignatureFor(const IconThemePlan& plan) {
+    std::string signature;
+    const auto appendDirectory = [&](const std::string& path) {
       signature += path;
       signature += ':';
       std::error_code ec;
       const auto modified = fs::last_write_time(path, ec);
-      signature += ec ? "missing" : std::format("{}", modified);
-      signature += '\n';
-
-      std::vector<std::string> entries;
-      for (fs::directory_iterator it(path, ec), end; !ec && it != end; it.increment(ec)) {
-        entries.push_back(it->path().filename().string());
-      }
-      std::ranges::sort(entries);
-      for (const auto& entry : entries) {
-        signature += std::to_string(entry.size());
-        signature += ':';
-        signature += entry;
+      if (ec) {
+        signature += "missing";
+      } else {
+        signature += std::to_string(modified.time_since_epoch().count());
       }
       signature += '\n';
     };
-    for (const auto& root : plan.baseDirs) {
-      appendPath("root:", root);
-    }
     for (const auto& dir : plan.searchDirs) {
-      appendPath("theme:", dir.path);
+      appendDirectory(dir.path);
     }
     for (const auto& dir : plan.pixmapDirs) {
-      appendPath("pixmap:", dir);
+      appendDirectory(dir);
     }
     return signature;
   }
@@ -379,7 +400,7 @@ namespace {
 
   void buildThemeSearchPaths(
       const std::string& themeName, const std::vector<std::string>& baseDirs, std::set<std::string>& visited,
-      std::vector<IconSearchDir>& searchDirs
+      std::vector<std::string>& themeRoots, std::vector<IconSearchDir>& searchDirs
   ) {
     if (visited.contains(themeName)) {
       return;
@@ -392,6 +413,7 @@ namespace {
       if (!pathIsDirectory(themeRoot)) {
         continue;
       }
+      pushUnique(themeRoots, themeRoot);
 
       auto [dirs, inherits] = parseIndexTheme(themeRoot);
 
@@ -430,7 +452,7 @@ namespace {
       }
     }
     for (const auto& parent : parents) {
-      buildThemeSearchPaths(parent, baseDirs, visited, searchDirs);
+      buildThemeSearchPaths(parent, baseDirs, visited, themeRoots, searchDirs);
     }
   }
 
@@ -453,14 +475,15 @@ namespace {
       }
       if (exists) {
         plan.activeTheme = candidate;
-        buildThemeSearchPaths(candidate, plan.baseDirs, visited, plan.searchDirs);
+        buildThemeSearchPaths(candidate, plan.baseDirs, visited, plan.themeRoots, plan.searchDirs);
         break;
       }
     }
 
     // hicolor is the mandatory base theme — always include it last
-    buildThemeSearchPaths("hicolor", plan.baseDirs, visited, plan.searchDirs);
-    plan.signature = signatureFor(plan);
+    buildThemeSearchPaths("hicolor", plan.baseDirs, visited, plan.themeRoots, plan.searchDirs);
+    plan.planSignature = planSignatureFor(plan);
+    plan.contentSignature = contentSignatureFor(plan);
     return plan;
   }
 
@@ -472,6 +495,22 @@ namespace {
     }
   }
 
+  bool updateThemeStateLocked(IconThemeState& state, bool includeContentChanges) {
+    IconThemePlan next = buildThemePlan();
+    if (!state.initialized) {
+      state.plan = std::move(next);
+      state.initialized = true;
+      return false;
+    }
+    const bool changed = next.planSignature != state.plan.planSignature
+        || (includeContentChanges && next.contentSignature != state.plan.contentSignature);
+    state.plan = std::move(next);
+    if (changed) {
+      ++state.generation;
+    }
+    return changed;
+  }
+
 } // namespace
 
 IconResolver::IconResolver(bool cacheMissing) : m_cacheMissing(cacheMissing) { rebuild(); }
@@ -481,19 +520,43 @@ IconResolver::IconResolver() : IconResolver(false) {}
 bool IconResolver::checkThemeChanged() {
   auto& state = iconThemeState();
   std::scoped_lock lock(state.mutex);
-  IconThemePlan next = buildThemePlan();
-  if (!state.initialized) {
-    state.plan = std::move(next);
-    state.initialized = true;
-    return false;
-  }
-  if (next.signature == state.plan.signature) {
-    return false;
-  }
+  return updateThemeStateLocked(state, true);
+}
 
+bool IconResolver::checkThemePlanChanged() {
+  auto& state = iconThemeState();
+  std::scoped_lock lock(state.mutex);
+  return updateThemeStateLocked(state, false);
+}
+
+void IconResolver::invalidateThemeContent() {
+  auto& state = iconThemeState();
+  std::scoped_lock lock(state.mutex);
+  IconThemePlan next = buildThemePlan();
   state.plan = std::move(next);
+  state.initialized = true;
   ++state.generation;
-  return true;
+}
+
+IconThemeWatchPaths IconResolver::themeWatchPaths() {
+  auto& state = iconThemeState();
+  std::scoped_lock lock(state.mutex);
+  ensureThemeStateLocked(state);
+  IconThemeWatchPaths paths{
+      .baseDirs = state.plan.baseDirs,
+      .themeRoots = state.plan.themeRoots,
+      .iconDirs = state.plan.pixmapDirs,
+      .settingsFiles = {},
+  };
+  paths.iconDirs.reserve(paths.iconDirs.size() + state.plan.searchDirs.size());
+  for (const auto& dir : state.plan.searchDirs) {
+    pushUnique(paths.iconDirs, dir.path);
+  }
+  if (const char* home = std::getenv("HOME"); home != nullptr && home[0] != '\0') {
+    paths.settingsFiles.emplace_back(std::string(home) + "/.config/gtk-3.0/settings.ini");
+    paths.settingsFiles.emplace_back(std::string(home) + "/.config/gtk-4.0/settings.ini");
+  }
+  return paths;
 }
 
 std::uint64_t IconResolver::themeGeneration() {

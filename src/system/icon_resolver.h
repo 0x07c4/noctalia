@@ -15,6 +15,13 @@ struct IconSearchDir {
   std::string theme;
 };
 
+struct IconThemeWatchPaths {
+  std::vector<std::string> baseDirs;
+  std::vector<std::string> themeRoots;
+  std::vector<std::string> iconDirs;
+  std::vector<std::string> settingsFiles;
+};
+
 class IconResolver {
 public:
   IconResolver();
@@ -30,6 +37,9 @@ public:
   void invalidateMissingCache();
 
   static bool checkThemeChanged();
+  static bool checkThemePlanChanged();
+  static void invalidateThemeContent();
+  static IconThemeWatchPaths themeWatchPaths();
   static std::uint64_t themeGeneration();
   static std::string activeThemeName();
 
