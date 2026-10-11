@@ -850,6 +850,7 @@ _noctalia_sources = files(
   'src/system/format_units.cpp',
   'src/system/hardware_info.cpp',
   'src/system/icon_resolver.cpp',
+  'src/system/icon_theme_poll_source.cpp',
   'src/system/internal_app_metadata.cpp',
   'src/system/easyeffects_service.cpp',
   'src/system/day_night_schedule.cpp',

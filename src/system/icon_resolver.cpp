@@ -15,6 +15,7 @@
 #include <optional>
 #include <set>
 #include <string_view>
+#include <sys/stat.h>
 #include <system_error>
 #include <unordered_set>
 #include <utility>
@@ -27,6 +28,7 @@ namespace {
 
   struct IconThemePlan {
     std::vector<std::string> baseDirs;
+    std::vector<std::string> themeRoots;
     std::vector<IconSearchDir> searchDirs;
     std::vector<std::string> pixmapDirs;
     std::string activeTheme;
@@ -166,38 +168,45 @@ namespace {
     return roots;
   }
 
+  void appendPathSignature(std::string& signature, std::string_view kind, const std::string& path) {
+    signature += kind;
+    signature += path;
+    signature += ':';
+
+    std::error_code ec;
+    const fs::path resolved = fs::weakly_canonical(path, ec);
+    signature += ec ? path : resolved.string();
+    signature += ':';
+
+    struct ::stat metadata{};
+    if (::stat(path.c_str(), &metadata) != 0) {
+      signature += "missing";
+    } else {
+      signature += std::format(
+          "{}:{}:{}:{}:{}", static_cast<unsigned long long>(metadata.st_dev),
+          static_cast<unsigned long long>(metadata.st_ino), static_cast<long long>(metadata.st_mtim.tv_sec),
+          static_cast<long long>(metadata.st_mtim.tv_nsec), static_cast<long long>(metadata.st_size)
+      );
+    }
+    signature += '\n';
+  }
+
   std::string signatureFor(const IconThemePlan& plan) {
     std::string signature = plan.activeTheme;
     signature += '\n';
-    auto appendPath = [&](std::string_view kind, const std::string& path) {
-      signature += kind;
-      signature += path;
-      signature += ':';
-      std::error_code ec;
-      const auto modified = fs::last_write_time(path, ec);
-      signature += ec ? "missing" : std::format("{}", modified);
-      signature += '\n';
-
-      std::vector<std::string> entries;
-      for (fs::directory_iterator it(path, ec), end; !ec && it != end; it.increment(ec)) {
-        entries.push_back(it->path().filename().string());
-      }
-      std::ranges::sort(entries);
-      for (const auto& entry : entries) {
-        signature += std::to_string(entry.size());
-        signature += ':';
-        signature += entry;
-      }
-      signature += '\n';
-    };
     for (const auto& root : plan.baseDirs) {
-      appendPath("root:", root);
+      appendPathSignature(signature, "root:", root);
+    }
+    for (const auto& root : plan.themeRoots) {
+      appendPathSignature(signature, "theme-root:", root);
+      appendPathSignature(signature, "theme-index:", (fs::path(root) / "index.theme").string());
     }
     for (const auto& dir : plan.searchDirs) {
-      appendPath("theme:", dir.path);
+      signature += std::format("theme-meta:{}:{}:{}\n", dir.theme, dir.size, dir.scalable);
+      appendPathSignature(signature, "theme-dir:", dir.path);
     }
     for (const auto& dir : plan.pixmapDirs) {
-      appendPath("pixmap:", dir);
+      appendPathSignature(signature, "pixmap:", dir);
     }
     return signature;
   }
@@ -379,7 +388,7 @@ namespace {
 
   void buildThemeSearchPaths(
       const std::string& themeName, const std::vector<std::string>& baseDirs, std::set<std::string>& visited,
-      std::vector<IconSearchDir>& searchDirs
+      std::vector<std::string>& themeRoots, std::vector<IconSearchDir>& searchDirs
   ) {
     if (visited.contains(themeName)) {
       return;
@@ -392,6 +401,7 @@ namespace {
       if (!pathIsDirectory(themeRoot)) {
         continue;
       }
+      pushUnique(themeRoots, themeRoot);
 
       auto [dirs, inherits] = parseIndexTheme(themeRoot);
 
@@ -430,7 +440,7 @@ namespace {
       }
     }
     for (const auto& parent : parents) {
-      buildThemeSearchPaths(parent, baseDirs, visited, searchDirs);
+      buildThemeSearchPaths(parent, baseDirs, visited, themeRoots, searchDirs);
     }
   }
 
@@ -453,13 +463,13 @@ namespace {
       }
       if (exists) {
         plan.activeTheme = candidate;
-        buildThemeSearchPaths(candidate, plan.baseDirs, visited, plan.searchDirs);
+        buildThemeSearchPaths(candidate, plan.baseDirs, visited, plan.themeRoots, plan.searchDirs);
         break;
       }
     }
 
     // hicolor is the mandatory base theme — always include it last
-    buildThemeSearchPaths("hicolor", plan.baseDirs, visited, plan.searchDirs);
+    buildThemeSearchPaths("hicolor", plan.baseDirs, visited, plan.themeRoots, plan.searchDirs);
     plan.signature = signatureFor(plan);
     return plan;
   }
@@ -494,6 +504,40 @@ bool IconResolver::checkThemeChanged() {
   state.plan = std::move(next);
   ++state.generation;
   return true;
+}
+
+void IconResolver::refreshTheme() {
+  auto& state = iconThemeState();
+  std::scoped_lock lock(state.mutex);
+  state.plan = buildThemePlan();
+  state.initialized = true;
+  ++state.generation;
+}
+
+IconThemeWatchPaths IconResolver::themeWatchPaths() {
+  auto& state = iconThemeState();
+  std::scoped_lock lock(state.mutex);
+  ensureThemeStateLocked(state);
+
+  IconThemeWatchPaths paths;
+  for (const auto& path : state.plan.baseDirs) {
+    pushUnique(paths.directories, path);
+  }
+  for (const auto& path : state.plan.themeRoots) {
+    pushUnique(paths.directories, path);
+  }
+  for (const auto& dir : state.plan.searchDirs) {
+    pushUnique(paths.directories, dir.path);
+  }
+  for (const auto& path : state.plan.pixmapDirs) {
+    pushUnique(paths.directories, path);
+  }
+
+  if (const char* home = std::getenv("HOME"); home != nullptr && home[0] != '\0') {
+    paths.files.push_back(std::string(home) + "/.config/gtk-3.0/settings.ini");
+    paths.files.push_back(std::string(home) + "/.config/gtk-4.0/settings.ini");
+  }
+  return paths;
 }
 
 std::uint64_t IconResolver::themeGeneration() {
