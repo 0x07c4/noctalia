@@ -1,16 +1,13 @@
 #include "system/icon_resolver.h"
-#include "system/icon_theme_poll_source.h"
 
 #include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <poll.h>
 #include <print>
 #include <string>
 #include <unistd.h>
-#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -142,18 +139,10 @@ int main() {
 
   const fs::path polledIcon = iconDir / "polled-icon.svg";
   ok = expect(resolver.resolve("polled-icon", 32).empty(), "second initial icon miss should be cached") && ok;
-  IconThemePollSource themeMonitor;
-  bool themeChanged = false;
-  themeMonitor.setChangeCallback([&themeChanged]() { themeChanged = true; });
-  std::vector<pollfd> pollFds;
-  const std::size_t pollStart = themeMonitor.addPollFds(pollFds);
   std::ofstream(polledIcon) << "<svg/>";
   // Some filesystems do not expose a distinct directory mtime for rapid changes.
   fs::last_write_time(iconDir, initialIconDirModified);
-  const int pollResult = ::poll(pollFds.data(), static_cast<nfds_t>(pollFds.size()), 1000);
-  ok = expect(pollResult > 0, "icon directory change should wake the theme monitor") && ok;
-  themeMonitor.dispatch(pollFds, pollStart);
-  ok = expect(themeChanged, "theme monitor should report icon directory changes") && ok;
+  ok = expect(IconResolver::checkThemeChanged(), "theme poll should detect icon directory changes") && ok;
   ok = expect(
            resolver.resolve("polled-icon", 32) == polledIcon.string(),
            "theme generation change should invalidate cached misses"
