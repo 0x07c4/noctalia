@@ -1582,6 +1582,15 @@
         "top-left": "Top Left",
         "top-right": "Top Right"
       },
+      "screenshot": {
+        "region-modifier": {
+          "alt": "Alt",
+          "ctrl": "Ctrl",
+          "none": "None",
+          "shift": "Shift",
+          "super": "Super"
+        }
+      },
       "shell": {
         "launcher-default-view": {
           "all-apps": "All Apps",
@@ -3424,6 +3433,10 @@
         "screenshot-remember-last-region": {
           "description": "Pre-select the last region (including after cancel) on the next region screenshot",
           "label": "Remember Last Region"
+        },
+        "screenshot-region-modifier": {
+          "description": "Modifier to move or resize a selected region: left-drag to move, right-drag to resize from the outer thirds (corners resize both axes). None (default) keeps the plain drag-to-adjust behavior",
+          "label": "Move/Resize Modifier"
         },
         "screenshot-save-to-file": {
           "description": "Write screenshots as PNG files to the output directory",

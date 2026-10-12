@@ -2038,6 +2038,12 @@ namespace settings {
         "screenshot capture remember last region selection"
     ));
     entries.push_back(makeEntry(
+        SettingsSection::Screenshot, "screenshot-capture", tr("settings.schema.shell.screenshot-region-modifier.label"),
+        tr("settings.schema.shell.screenshot-region-modifier.description"), {"shell", "screenshot", "region_modifier"},
+        enumSelect(kScreenshotRegionModifiers, cfg.shell.screenshot.regionModifier),
+        "screenshot region modifier move resize drag selection captures"
+    ));
+    entries.push_back(makeEntry(
         SettingsSection::Screenshot, "screenshot-capture", tr("settings.schema.shell.screenshot-show-cursor.label"),
         tr("settings.schema.shell.screenshot-show-cursor.description"), {"shell", "screenshot", "show_cursor"},
         ToggleSetting{cfg.shell.screenshot.showCursor}, "screenshot capture show cursor pointer mouse"

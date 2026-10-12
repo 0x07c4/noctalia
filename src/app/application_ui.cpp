@@ -468,6 +468,7 @@ void Application::initInputDispatch() {
   });
   m_wayland.setKeyboardModifiersCallback([this](std::uint32_t modifiers) {
     m_windowSwitcher.onKeyboardModifiers(modifiers);
+    m_screenshotService.onModifiersChanged();
   });
   m_wayland.setKeyboardEventCallback([this](const KeyboardEvent& event) {
     if (m_lockScreen.isActive()) {

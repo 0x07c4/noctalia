@@ -1046,6 +1046,23 @@ struct LauncherProviderConfig {
   bool operator==(const LauncherProviderConfig&) const = default;
 };
 
+// Modifier that must be held to move/resize an already selected capture region.
+enum class ScreenshotRegionModifier : std::uint8_t {
+  None = 0,
+  Super = 1,
+  Ctrl = 2,
+  Alt = 3,
+  Shift = 4,
+};
+
+constexpr EnumOption<ScreenshotRegionModifier> kScreenshotRegionModifiers[] = {
+    {ScreenshotRegionModifier::None, "none", "settings.options.screenshot.region-modifier.none"},
+    {ScreenshotRegionModifier::Super, "super", "settings.options.screenshot.region-modifier.super"},
+    {ScreenshotRegionModifier::Ctrl, "ctrl", "settings.options.screenshot.region-modifier.ctrl"},
+    {ScreenshotRegionModifier::Alt, "alt", "settings.options.screenshot.region-modifier.alt"},
+    {ScreenshotRegionModifier::Shift, "shift", "settings.options.screenshot.region-modifier.shift"},
+};
+
 struct ShellConfig {
   struct AnimationConfig {
     bool enabled = true;
@@ -1198,6 +1215,7 @@ struct ShellConfig {
     std::string pipeCommand;
     std::string directory;       // empty = XDG Pictures directory
     std::string filenamePattern; // empty = screenshot_%Y%m%d_%H%M%S
+    ScreenshotRegionModifier regionModifier = ScreenshotRegionModifier::None;
 
     bool operator==(const ScreenshotConfig&) const = default;
   };
