@@ -332,7 +332,10 @@ void VirtualGridView::doLayout(Renderer& renderer) {
     }
   }
 
-  // Step 2: determine the visible row range from current scroll offset, with overscan.
+  // Resolve pending jumps and clamp the offset against the new canvas before binding tiles.
+  Flex::doLayout(renderer);
+
+  // Step 2: determine the visible row range from the resolved scroll offset, with overscan.
   const float rowStride = cellH + m_rowGap;
   const float scrollY = m_scroll->scrollOffset();
   std::size_t firstRow = 0;
@@ -478,10 +481,6 @@ void VirtualGridView::doLayout(Renderer& renderer) {
   // Step 5: position the input overlay across the entire virtual canvas.
   m_inputArea->setPosition(0.0F, 0.0F);
   m_inputArea->setFrameSize(viewportW, virtualHeight);
-
-  // Step 6: run the outer Flex layout so ScrollView lays itself out around
-  // the canvas with its now-correct virtual size.
-  Flex::doLayout(renderer);
 }
 
 LayoutSize VirtualGridView::doMeasure(Renderer& /*renderer*/, const LayoutConstraints& constraints) {
