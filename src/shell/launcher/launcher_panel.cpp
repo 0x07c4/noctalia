@@ -1534,11 +1534,11 @@ void LauncherPanel::create() {
   auto body = ui::column({
       .out = &m_body,
       .align = FlexAlign::Stretch,
+      .paddingV = m_browserMode ? Style::spaceSm * scale : 0.0F,
       .fillWidth = true,
       .flexGrow = 1.0F,
   });
   if (m_browserMode) {
-    body->setPadding(Style::spaceSm * scale);
     body->setGap(Style::spaceSm * scale);
     auto navigationRow = ui::row({
         .align = FlexAlign::Center,
@@ -1758,6 +1758,7 @@ void LauncherPanel::create() {
         .out = &m_container,
         .align = FlexAlign::Stretch,
         .gap = Style::spaceSm * scale,
+        .paddingH = Style::spaceSm * scale,
         .fillWidth = true,
         .fillHeight = true,
     });
