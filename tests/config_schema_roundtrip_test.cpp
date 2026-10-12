@@ -534,6 +534,7 @@ location = "https://example.invalid/bad"
     c.shell.launcher.showSettingsButton = false;
     c.shell.launcher.showSessionButton = false;
     c.shell.launcher.compact = true;
+    c.shell.launcher.trackUsage = false;
     c.shell.launcher.sortByUsage = false;
     DmenuEntryConfig notifyDmenu;
     notifyDmenu.id = "notify";

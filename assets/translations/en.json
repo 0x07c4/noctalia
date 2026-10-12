@@ -2713,7 +2713,7 @@
         },
         "launcher-reset-usage": {
           "button": "Reset",
-          "description": "Clear launch counts and recently used history used for launcher sorting",
+          "description": "Clear launcher history used by Recent and usage-based sorting",
           "label": "Reset Usage Data"
         },
         "launcher-session-search": {
@@ -2727,6 +2727,10 @@
         "launcher-sort-by-usage": {
           "description": "Prioritize frequently used results in normal browsing and search",
           "label": "Sort by Usage"
+        },
+        "launcher-track-usage": {
+          "description": "Record launcher history for Recent and usage-based sorting",
+          "label": "Track Usage"
         },
         "list-item-background": {
           "description": "Draw a rounded background behind each launcher and clipboard list item",

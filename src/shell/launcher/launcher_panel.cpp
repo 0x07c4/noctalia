@@ -1444,7 +1444,8 @@ void LauncherPanel::applyProviderConfig(LauncherProvider& provider) const {
 }
 
 void LauncherPanel::finishActivation(LauncherProvider& provider, const std::string& resultId, bool copied) {
-  if (provider.trackUsage()) {
+  const bool trackUsage = m_config == nullptr || m_config->config().shell.launcher.trackUsage;
+  if (trackUsage && provider.trackUsage()) {
     m_usageTracker.record(provider.id(), resultId);
   }
   PanelManager::instance().closePanel(false);
@@ -2521,6 +2522,8 @@ void LauncherPanel::onInputChanged(const std::string& text) {
   std::vector<LauncherCategory> newCategories;
   bool hasRecentlyUsed = false;
   bool anyProviderLoading = false;
+  const bool trackUsage = m_config == nullptr || m_config->config().shell.launcher.trackUsage;
+  const bool sortByUsage = trackUsage && m_config != nullptr && m_config->config().shell.launcher.sortByUsage;
 
   if (!m_scopedProviderId.empty()) {
     for (auto& provider : m_providers) {
@@ -2573,8 +2576,6 @@ void LauncherPanel::onInputChanged(const std::string& text) {
     }
 
     const bool typedQuery = !queryText.empty();
-    const bool sortByUsage = m_config != nullptr && m_config->config().shell.launcher.sortByUsage;
-
     auto applyUsageMetadata = [&](std::vector<LauncherResult>& results, const LauncherProvider& provider) {
       for (auto& result : results) {
         if (sortByUsage) {
@@ -2588,7 +2589,7 @@ void LauncherPanel::onInputChanged(const std::string& text) {
     if (activeProvider != nullptr) {
       m_allResults = activeProvider->queryPrefixed(queryText);
       anyProviderLoading = activeProvider->isLoading();
-      if (activeProvider->trackUsage()) {
+      if (trackUsage && activeProvider->trackUsage()) {
         applyUsageMetadata(m_allResults, *activeProvider);
         if (m_usageTracker.getRecentlyUsedCount(activeProvider->id()) > 0) {
           hasRecentlyUsed = true;
@@ -2621,7 +2622,7 @@ void LauncherPanel::onInputChanged(const std::string& text) {
         if (provider->isLoading()) {
           anyProviderLoading = true;
         }
-        if (provider->trackUsage()) {
+        if (trackUsage && provider->trackUsage()) {
           applyUsageMetadata(results, *provider);
           if (m_usageTracker.getRecentlyUsedCount(provider->id()) > 0) {
             hasRecentlyUsed = true;
@@ -2647,7 +2648,7 @@ void LauncherPanel::onInputChanged(const std::string& text) {
         std::ranges::find(m_providers, kApplicationsProviderId, [](const auto& provider) { return provider->id(); });
     if (applications != m_providers.end()) {
       newCategories = (*applications)->categories();
-      hasRecentlyUsed = m_usageTracker.getRecentlyUsedCount((*applications)->id()) > 0;
+      hasRecentlyUsed = trackUsage && m_usageTracker.getRecentlyUsedCount((*applications)->id()) > 0;
     }
   }
 
@@ -3080,7 +3081,8 @@ void LauncherPanel::updateLauncherOptionButtons() {
   }
   const auto& launcher = m_config->config().shell.launcher;
   if (m_launcherUsageButton != nullptr) {
-    const bool orderingAvailable = !m_showingProviderOverview
+    const bool orderingAvailable = launcher.trackUsage
+        && !m_showingProviderOverview
         && m_launcherProviderViewId.empty()
         && (m_activeCategoryType == All || m_activeCategoryType == Category);
     m_launcherUsageButton->setVisible(orderingAvailable);

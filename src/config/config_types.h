@@ -1135,6 +1135,7 @@ struct ShellConfig {
     bool compact = false;
     bool appGrid = false;
     bool showAppActions = false;
+    bool trackUsage = true;
     bool sortByUsage = true;
     // Desktop entry IDs shown in manual order in the Pinned view.
     std::vector<std::string> pinned;
