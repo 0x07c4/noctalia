@@ -1564,8 +1564,8 @@ void LauncherPanel::create() {
             ui::button({
                 .out = &m_launcherUsageButton,
                 .glyph = m_config != nullptr && m_config->config().shell.launcher.sortByUsage
-                    ? "sort-descending-small-big"
-                    : "sort-ascending-letters",
+                    ? "sort-ascending-letters"
+                    : "sort-descending-small-big",
                 .glyphSize = Style::fontSizeBody * scale,
                 .variant = ButtonVariant::Ghost,
                 .surfaceOpacity = panelCardOpacity(),
@@ -2929,7 +2929,7 @@ void LauncherPanel::rebuildLauncherNavigation() {
       break;
     case Category:
       label = i18n::tr("launcher.browser.navigation.categories");
-      glyph = "category";
+      glyph = "tag";
       break;
     }
     m_launcherNavigation->addOption(iconOnly ? "" : label, glyph);
@@ -3087,7 +3087,7 @@ void LauncherPanel::updateLauncherOptionButtons() {
     m_launcherUsageButton->setParticipatesInLayout(orderingAvailable);
     m_launcherUsageButton->setEnabled(orderingAvailable);
     m_launcherUsageButton->setSelected(false);
-    m_launcherUsageButton->setGlyph(launcher.sortByUsage ? "sort-descending-small-big" : "sort-ascending-letters");
+    m_launcherUsageButton->setGlyph(launcher.sortByUsage ? "sort-ascending-letters" : "sort-descending-small-big");
     m_launcherUsageButton->setTooltip(
         i18n::tr(
             launcher.sortByUsage ? "launcher.browser.options.use-default-order"
