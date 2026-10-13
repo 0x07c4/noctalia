@@ -2565,10 +2565,6 @@
           "description": "在搜索结果中同时显示应用及其操作项",
           "label": "显示应用操作"
         },
-        "launcher-app-grid": {
-          "description": "当搜索结果仅包含应用时，以网格形式显示应用图标，并在图标下方显示名称",
-          "label": "应用网格视图"
-        },
         "launcher-app-origin-indicator": {
           "description": "在应用搜索结果中显示软件包来源标识",
           "label": "显示应用来源标识"
@@ -2612,6 +2608,10 @@
         "launcher-global-windows": {
           "description": "在无前缀搜索中显示打开的窗口",
           "label": "全局搜索中的窗口"
+        },
+        "launcher-grid": {
+          "description": "当搜索结果仅包含应用时，以网格形式显示应用图标，并在图标下方显示名称",
+          "label": "应用网格视图"
         },
         "launcher-ignored-panels": {
           "description": "面板搜索源不会列出的面板（例如身份验证提示、设置向导）",

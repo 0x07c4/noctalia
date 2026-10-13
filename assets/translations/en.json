@@ -721,6 +721,33 @@
     }
   },
   "launcher": {
+    "browser": {
+      "actions": {
+        "power": "Power",
+        "settings": "Settings"
+      },
+      "navigation": {
+        "all-apps": "All Apps",
+        "categories": "Categories",
+        "pinned": "Pinned",
+        "providers": "Providers",
+        "recent": "Recent"
+      },
+      "options": {
+        "show-grid": "Show Grid View",
+        "show-list": "Show List View",
+        "sort-by-frequency": "Prioritize Frequent Results",
+        "use-default-order": "Use Default Ordering"
+      },
+      "sections": {
+        "all-apps": "All Apps",
+        "other-apps": "Other Apps",
+        "pinned": "Pinned",
+        "providers": "Providers",
+        "recent": "Recent",
+        "search-results": "Search Results"
+      }
+    },
     "categories": {
       "all": "All",
       "applications": {
@@ -803,34 +830,7 @@
         "title": "Windows"
       }
     },
-    "search-placeholder": "Search applications…",
-    "browser": {
-      "actions": {
-        "power": "Power",
-        "settings": "Settings"
-      },
-      "navigation": {
-        "all-apps": "All Apps",
-        "categories": "Categories",
-        "pinned": "Pinned",
-        "providers": "Providers",
-        "recent": "Recent"
-      },
-      "options": {
-        "show-grid": "Show Grid View",
-        "show-list": "Show List View",
-        "sort-by-frequency": "Prioritize Frequent Results",
-        "use-default-order": "Use Default Ordering"
-      },
-      "sections": {
-        "all-apps": "All Apps",
-        "other-apps": "Other Apps",
-        "pinned": "Pinned",
-        "providers": "Providers",
-        "recent": "Recent",
-        "search-results": "Search Results"
-      }
-    }
+    "search-placeholder": "Search applications…"
   },
   "location": {
     "errors": {
@@ -2617,10 +2617,6 @@
           "description": "Show application action entries alongside applications in results",
           "label": "Show App Actions"
         },
-        "launcher-app-grid": {
-          "description": "Show applications, global search results, and the provider overview as icon grids",
-          "label": "App Grid View"
-        },
         "launcher-app-origin-indicator": {
           "description": "Show package origin indicators on application results",
           "label": "Show App Origin Indicators"
@@ -2628,6 +2624,10 @@
         "launcher-auto-paste": {
           "description": "After calculator, emoji, and other copy activations, paste into the focused window (same shortcuts as clipboard auto-paste)",
           "label": "Auto-Paste"
+        },
+        "launcher-categories": {
+          "description": "Display category filters in the launcher; reveal with F6, then cycle with F6 and Shift+F6",
+          "label": "Show Categories"
         },
         "launcher-category-icons-only": {
           "description": "Show only icons for app categories, with full names in hover tooltips",
@@ -2644,22 +2644,6 @@
         "launcher-default-view": {
           "description": "Choose the view shown when the launcher opens without a search",
           "label": "Default View"
-        },
-        "launcher-width": {
-          "description": "Set the launcher panel width",
-          "label": "Launcher Width"
-        },
-        "launcher-search-position": {
-          "description": "Place the launcher toolbar at the top or bottom",
-          "label": "Toolbar Position"
-        },
-        "launcher-show-session-button": {
-          "description": "Show a shortcut to the configured session actions",
-          "label": "Show Session Button"
-        },
-        "launcher-show-settings-button": {
-          "description": "Show a shortcut to Noctalia Settings",
-          "label": "Show Settings Button"
         },
         "launcher-global-calculator": {
           "description": "Also show calculator results in unprefixed search",
@@ -2684,6 +2668,10 @@
         "launcher-global-windows": {
           "description": "Also show open windows in unprefixed search",
           "label": "Windows in Global Search"
+        },
+        "launcher-grid": {
+          "description": "Show applications, global search results, and the provider overview as icon grids",
+          "label": "App Grid View"
         },
         "launcher-ignored-panels": {
           "description": "Panels the panel provider never lists (e.g. authentication prompts, the setup wizard)",
@@ -2726,6 +2714,10 @@
           "description": "Clear launcher history used by Recent and usage-based sorting",
           "label": "Reset Usage Data"
         },
+        "launcher-search-position": {
+          "description": "Place the launcher toolbar at the top or bottom",
+          "label": "Toolbar Position"
+        },
         "launcher-session-search": {
           "description": "Include session actions (lock, suspend, reboot, shutdown, logout) in general launcher searches, not only behind the /session prefix",
           "label": "Enable Session Search"
@@ -2734,6 +2726,14 @@
           "description": "Show application icons in launcher results",
           "label": "Show App Icons"
         },
+        "launcher-show-session-button": {
+          "description": "Show a shortcut to the configured session actions",
+          "label": "Show Session Button"
+        },
+        "launcher-show-settings-button": {
+          "description": "Show a shortcut to Noctalia Settings",
+          "label": "Show Settings Button"
+        },
         "launcher-sort-by-usage": {
           "description": "Prioritize frequently used results in normal browsing and search",
           "label": "Sort by Usage"
@@ -2741,6 +2741,10 @@
         "launcher-track-usage": {
           "description": "Record launcher history for Recent and usage-based sorting",
           "label": "Track Usage"
+        },
+        "launcher-width": {
+          "description": "Set the launcher panel width",
+          "label": "Launcher Width"
         },
         "list-item-background": {
           "description": "Draw a rounded background behind each launcher and clipboard list item",
@@ -3430,13 +3434,13 @@
           "description": "Send the captured PNG to a shell command on stdin",
           "label": "Pipe to Command"
         },
-        "screenshot-remember-last-region": {
-          "description": "Pre-select the last region (including after cancel) on the next region screenshot",
-          "label": "Remember Last Region"
-        },
         "screenshot-region-modifier": {
           "description": "Modifier to move or resize a selected region: left-drag to move, right-drag to resize from the outer thirds (corners resize both axes). None (default) keeps the plain drag-to-adjust behavior",
           "label": "Move/Resize Modifier"
+        },
+        "screenshot-remember-last-region": {
+          "description": "Pre-select the last region (including after cancel) on the next region screenshot",
+          "label": "Remember Last Region"
         },
         "screenshot-save-to-file": {
           "description": "Write screenshots as PNG files to the output directory",

@@ -2565,10 +2565,6 @@
           "description": "Mostra le voci delle azioni accanto alle applicazioni nei risultati",
           "label": "Mostra azioni app"
         },
-        "launcher-app-grid": {
-          "description": "Mostra una griglia di icone delle applicazioni con le etichette sottostanti quando i risultati riguardano solo le app",
-          "label": "Vista app a griglia"
-        },
         "launcher-app-origin-indicator": {
           "description": "Mostra l'origine dei pacchetti nei risultati",
           "label": "Mostra origine app"
@@ -2612,6 +2608,10 @@
         "launcher-global-windows": {
           "description": "Mostra anche le finestre aperte nei risultati senza prefisso",
           "label": "Finestre nella ricerca globale"
+        },
+        "launcher-grid": {
+          "description": "Mostra una griglia di icone delle applicazioni con le etichette sottostanti quando i risultati riguardano solo le app",
+          "label": "Vista app a griglia"
         },
         "launcher-ignored-panels": {
           "description": "Pannelli che il provider pannello non elenca mai (ad esempio, richieste di autenticazione, procedura guidata di configurazione)",

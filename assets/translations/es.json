@@ -2531,10 +2531,6 @@
           "description": "Mostrar entradas de acciones de la aplicación junto a las aplicaciones en los resultados",
           "label": "Mostrar acciones de la aplicación"
         },
-        "launcher-app-grid": {
-          "description": "Mostrar una cuadrícula de iconos de aplicaciones con etiquetas debajo cuando los resultados sean solo aplicaciones",
-          "label": "Vista de cuadrícula de aplicaciones"
-        },
         "launcher-app-origin-indicator": {
           "description": "Mostrar indicadores de origen del paquete en los resultados de la aplicación",
           "label": "Mostrar indicadores de origen de la aplicación"
@@ -2578,6 +2574,10 @@
         "launcher-global-windows": {
           "description": "Mostrar también las ventanas abiertas en la búsqueda sin prefijo",
           "label": "Ventanas en la búsqueda global"
+        },
+        "launcher-grid": {
+          "description": "Mostrar una cuadrícula de iconos de aplicaciones con etiquetas debajo cuando los resultados sean solo aplicaciones",
+          "label": "Vista de cuadrícula de aplicaciones"
         },
         "launcher-ignored-panels": {
           "description": "Paneles que el proveedor del panel nunca incluye en la lista (por ejemplo, avisos de autenticación, el asistente de configuración)",
