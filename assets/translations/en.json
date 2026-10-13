@@ -728,6 +728,7 @@
       },
       "navigation": {
         "all": "All",
+        "all-apps": "All Apps",
         "categories": "Categories",
         "pinned": "Pinned",
         "providers": "Providers",

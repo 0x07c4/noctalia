@@ -1583,7 +1583,6 @@
       },
       "shell": {
         "launcher-default-view": {
-          "all-apps": "Todos Apps",
           "categories": "Categorias",
           "pinned": "Fixado",
           "recent": "Recente"
