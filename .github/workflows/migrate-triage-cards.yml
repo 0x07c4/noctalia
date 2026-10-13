@@ -1,0 +1,115 @@
+name: Migrate Hidden Triage Cards
+
+# One-off: GitHub hid the Noctalia-CI account, so every Maintainer triage card it
+# created is invisible to everyone else and cannot be re-added by the Noctalia
+# Automation App (adding the same issue again fails). This recreates each such card
+# as the App with the same field values and archive state, then deletes the old one.
+# Run with apply=false first and check the job summary. Delete this workflow, the
+# MAINTAINER_TRIAGE_TOKEN secret and the Noctalia-CI credential afterwards.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Recreate the cards (false = list only)
+        required: true
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: maintainer-triage-intake-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    if: ${{ github.repository == 'noctalia-dev/noctalia' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Noctalia Automation token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.AUTOMATION_APP_CLIENT_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+          owner: noctalia-dev
+          repositories: noctalia,umbriel
+          permission-organization-projects: write
+          permission-issues: read
+          permission-pull-requests: read
+
+      - name: Recreate Noctalia-CI cards as the App
+        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        env:
+          LEGACY_TOKEN: ${{ secrets.MAINTAINER_TRIAGE_TOKEN }}
+          APPLY: ${{ inputs.apply }}
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const projectId = 'PVT_kwDODYBPq84BmIDl';
+            const apply = process.env.APPLY === 'true';
+            if (!process.env.LEGACY_TOKEN) throw new Error('MAINTAINER_TRIAGE_TOKEN is not available');
+            const legacy = getOctokit(process.env.LEGACY_TOKEN);
+            const viewer = (await legacy.graphql('query { viewer { login } }')).viewer.login;
+            if (viewer !== 'Noctalia-CI') throw new Error(`Unexpected legacy identity: ${viewer}`);
+
+            // Only Noctalia-CI can still see its own cards.
+            const cards = [];
+            let cursor = null;
+            do {
+              const page = await legacy.graphql(`query($id:ID!,$cursor:String) { node(id:$id) { ... on ProjectV2 {
+                items(first:100, after:$cursor) {
+                  nodes { id isArchived creator { login }
+                    content { ... on Issue { id number url repository { name } } ... on PullRequest { id number url repository { name } } }
+                    fieldValues(first:50) { nodes {
+                      ... on ProjectV2ItemFieldSingleSelectValue { optionId field { ... on ProjectV2FieldCommon { id name dataType } } }
+                      ... on ProjectV2ItemFieldTextValue { text field { ... on ProjectV2FieldCommon { id name dataType } } }
+                      ... on ProjectV2ItemFieldDateValue { date field { ... on ProjectV2FieldCommon { id name dataType } } }
+                      ... on ProjectV2ItemFieldNumberValue { number field { ... on ProjectV2FieldCommon { id name dataType } } }
+                    } }
+                  }
+                  pageInfo { hasNextPage endCursor }
+                } } } }`, { id: projectId, cursor });
+              const items = page.node.items;
+              cards.push(...items.nodes.filter(item => item.creator?.login === 'Noctalia-CI' && item.content?.id));
+              cursor = items.pageInfo.hasNextPage ? items.pageInfo.endCursor : null;
+            } while (cursor);
+            // Values to copy: custom fields only; built-in ones (title, labels, ...) follow the content.
+            const valueOf = entry => {
+              switch (entry.field?.dataType) {
+                case 'SINGLE_SELECT': return entry.optionId ? { singleSelectOptionId: entry.optionId } : null;
+                case 'TEXT': return typeof entry.text === 'string' ? { text: entry.text } : null;
+                case 'DATE': return entry.date ? { date: entry.date } : null;
+                case 'NUMBER': return typeof entry.number === 'number' ? { number: entry.number } : null;
+                default: return null;
+              }
+            };
+            const rows = [['Card', 'Archived', 'Fields', 'Result']];
+            let failures = 0;
+            for (const card of cards) {
+              const label = `${card.content.repository.name}#${card.content.number}`;
+              const values = card.fieldValues.nodes.map(entry => ({ entry, value: valueOf(entry) })).filter(({ value }) => value);
+              const summary = values.map(({ entry, value }) => `${entry.field.name}=${Object.values(value)[0]}`).join(', ');
+              let result = 'listed';
+              if (apply) {
+                try {
+                  await legacy.graphql('mutation($p:ID!,$i:ID!) { deleteProjectV2Item(input:{projectId:$p,itemId:$i}) { deletedItemId } }', { p: projectId, i: card.id });
+                  const added = await github.graphql('mutation($p:ID!,$c:ID!) { addProjectV2ItemById(input:{projectId:$p,contentId:$c}) { item { id } } }', { p: projectId, c: card.content.id });
+                  const itemId = added.addProjectV2ItemById.item.id;
+                  for (const { entry, value } of values) {
+                    await github.graphql('mutation($input:UpdateProjectV2ItemFieldValueInput!) { updateProjectV2ItemFieldValue(input:$input) { projectV2Item { id } } }',
+                      { input: { projectId, itemId, fieldId: entry.field.id, value } });
+                  }
+                  if (card.isArchived) await github.graphql('mutation($p:ID!,$i:ID!) { archiveProjectV2Item(input:{projectId:$p,itemId:$i}) { item { id } } }', { p: projectId, i: itemId });
+                  result = `recreated ${itemId}`;
+                } catch (error) {
+                  failures++;
+                  result = `FAILED: ${error.message}`;
+                  core.error(`${label} (${card.content.url}): ${error.message}; old values: ${summary}`);
+                }
+              }
+              core.info(`${label}: ${result} [${summary}]`);
+              rows.push([`[${label}](${card.content.url})`, card.isArchived ? 'yes' : 'no', summary || '—', result]);
+            }
+            await core.summary.addHeading(`${apply ? 'Recreated' : 'Found'} ${cards.length} Noctalia-CI cards`).addTable(rows.map((row, index) => index ? row : row.map(data => ({ data, header: true })))).write();
+            if (failures) throw new Error(`${failures} card(s) failed; see the errors above for their old values`);
