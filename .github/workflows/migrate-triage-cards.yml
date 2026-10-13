@@ -108,13 +108,22 @@ jobs:
             }
             const limit = Number(process.env.LIMIT) > 0 ? Number(process.env.LIMIT) : cards.length;
             const rows = [['Card', 'Archived', 'Fields', 'Result']];
-            let done = 0;
+            let done = 0, skipped = 0;
+            // Content the App cannot resolve (e.g. a pull request whose author GitHub
+            // also hid) cannot be re-added; leave those cards untouched.
+            async function visibleToApp(contentId) {
+              try { return Boolean((await call(github, 'query($c:ID!) { node(id:$c) { id } }', { c: contentId }, 'visibility')).node); }
+              catch (error) { if (error.errors?.some(entry => entry.type === 'NOT_FOUND')) return false; throw error; }
+            }
             for (const card of cards) {
               const label = `${card.content.repository.name}#${card.content.number}`;
               const values = card.fieldValues.nodes.map(entry => ({ entry, value: valueOf(entry) })).filter(({ value }) => value);
               const summary = values.map(({ entry, value }) => `${entry.field.name}=${entry.name ?? Object.values(value)[0]}`).join(', ');
               let result = 'listed';
-              if (apply && done < limit) {
+              if (apply && done < limit && !(await visibleToApp(card.content.id))) {
+                skipped++;
+                result = 'skipped: content not visible to the App (card left as is)';
+              } else if (apply && done < limit) {
                 await call(legacy, 'mutation($p:ID!,$i:ID!) { deleteProjectV2Item(input:{projectId:$p,itemId:$i}) { deletedItemId } }', { p: projectId, i: card.id }, `${label} delete`);
                 try {
                   const added = await call(github, 'mutation($p:ID!,$c:ID!) { addProjectV2ItemById(input:{projectId:$p,contentId:$c}) { item { id } } }', { p: projectId, c: card.content.id }, `${label} add`);
@@ -141,5 +150,5 @@ jobs:
               core.info(`${label}: ${result} [${summary}]`);
               rows.push([`[${label}](${card.content.url})`, card.isArchived ? 'yes' : 'no', summary || '—', result]);
             }
-            const heading = apply ? `Recreated ${done} of ${cards.length} Noctalia-CI cards${done < cards.length ? '; run again to continue' : ''}` : `Found ${cards.length} Noctalia-CI cards`;
+            const heading = apply ? `Recreated ${done} of ${cards.length} Noctalia-CI cards (${skipped} skipped, content not visible)${done + skipped < cards.length ? '; run again to continue' : ''}` : `Found ${cards.length} Noctalia-CI cards`;
             await core.summary.addHeading(heading).addTable(rows.map((row, index) => index ? row : row.map(data => ({ data, header: true })))).write();
