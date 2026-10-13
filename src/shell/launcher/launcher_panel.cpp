@@ -1404,7 +1404,10 @@ LauncherPanel::LauncherPanel(ConfigService* config, AccountsService* accounts, A
 
 LauncherPanel::~LauncherPanel() = default;
 
-bool LauncherPanel::usesBrowserLayout() const { return m_scopedProviderId.empty(); }
+bool LauncherPanel::usesBrowserLayout() const {
+  return m_scopedProviderId.empty()
+      && (m_config == nullptr || m_config->config().shell.launcher.layout == ShellConfig::LauncherLayout::Full);
+}
 
 float LauncherPanel::preferredWidth() const {
   const float browserWidth = m_config != nullptr ? static_cast<float>(m_config->config().shell.launcher.width)
@@ -1535,7 +1538,6 @@ void LauncherPanel::create() {
   auto body = ui::column({
       .out = &m_body,
       .align = FlexAlign::Stretch,
-      .paddingV = m_browserMode ? Style::spaceSm * scale : 0.0F,
       .fillWidth = true,
       .flexGrow = 1.0F,
   });
@@ -1759,7 +1761,7 @@ void LauncherPanel::create() {
         .out = &m_container,
         .align = FlexAlign::Stretch,
         .gap = Style::spaceSm * scale,
-        .paddingH = Style::spaceSm * scale,
+        .padding = Style::spaceSm * scale,
         .fillWidth = true,
         .fillHeight = true,
     });
@@ -2917,7 +2919,7 @@ void LauncherPanel::rebuildLauncherNavigation() {
     std::string glyph;
     switch (slot.type) {
     case All:
-      label = i18n::tr("launcher.browser.navigation.all-apps");
+      label = i18n::tr("launcher.browser.navigation.all");
       glyph = "apps";
       break;
     case Pinned:
@@ -2974,7 +2976,7 @@ void LauncherPanel::applyDefaultView() {
     case ShellConfig::LauncherDefaultView::Pinned:
       requested = Pinned;
       break;
-    case ShellConfig::LauncherDefaultView::AllApps:
+    case ShellConfig::LauncherDefaultView::All:
       requested = All;
       break;
     case ShellConfig::LauncherDefaultView::Categories:
@@ -3115,7 +3117,9 @@ void LauncherPanel::setCategoryFilterVisible(bool visible) {
           && m_query.empty()
           && m_launcherProviderViewId.empty()
           && !m_currentCategories.empty()
-                                  : visible && !m_categoryFilterSlots.empty();
+                                  : visible
+          && !m_categoryFilterSlots.empty()
+          && (!m_scopedProviderId.empty() || m_config == nullptr || m_config->config().shell.launcher.categories);
   m_categoryFilter->setVisible(show);
   m_categoryFilter->setParticipatesInLayout(show);
   if (m_container != nullptr) {
@@ -3179,6 +3183,9 @@ void LauncherPanel::applyActiveCategory() {
   switch (m_activeCategoryType) {
   case All:
     m_results = m_allResults;
+    if (!m_browserMode && m_scopedProviderId.empty() && m_query.empty()) {
+      applyPinnedApplicationOrder();
+    }
     break;
   case Pinned:
     std::ranges::copy_if(m_allResults, std::back_inserter(m_results), [](const LauncherResult& result) {

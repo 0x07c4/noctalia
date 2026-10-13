@@ -1436,11 +1436,13 @@ namespace noctalia::config::schema {
 
     const Schema<ShellConfig::LauncherConfig>& shellLauncherSchema() {
       static const Schema<ShellConfig::LauncherConfig> s = {
+          enumField(&ShellConfig::LauncherConfig::layout, "layout", ShellConfig::kLauncherLayouts),
           field(&ShellConfig::LauncherConfig::width, "width", noctalia::config::schema::kLauncherWidthRange),
           enumField(
               &ShellConfig::LauncherConfig::searchPosition, "search_position", ShellConfig::kLauncherSearchPositions
           ),
           enumField(&ShellConfig::LauncherConfig::defaultView, "default_view", ShellConfig::kLauncherDefaultViews),
+          field(&ShellConfig::LauncherConfig::categories, "categories"),
           field(&ShellConfig::LauncherConfig::categoryIconsOnly, "category_icons_only"),
           field(&ShellConfig::LauncherConfig::showSettingsButton, "show_settings_button"),
           field(&ShellConfig::LauncherConfig::showSessionButton, "show_session_button"),

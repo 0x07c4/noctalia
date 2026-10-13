@@ -1124,26 +1124,39 @@ struct ShellConfig {
       {LauncherSearchPosition::Bottom, "bottom", "settings.options.shell.launcher-search-position.bottom"},
   };
 
+  enum class LauncherLayout : std::uint8_t {
+    Full = 0,
+    Simple = 1,
+  };
+
+  static constexpr EnumOption<LauncherLayout> kLauncherLayouts[] = {
+      {LauncherLayout::Full, "full", "settings.options.shell.launcher-layout.full"},
+      {LauncherLayout::Simple, "simple", "settings.options.shell.launcher-layout.simple"},
+  };
+
   enum class LauncherDefaultView : std::uint8_t {
     Recent = 0,
     Pinned = 1,
-    AllApps = 2,
+    All = 2,
     Categories = 3,
   };
 
   static constexpr EnumOption<LauncherDefaultView> kLauncherDefaultViews[] = {
       {LauncherDefaultView::Recent, "recent", "settings.options.shell.launcher-default-view.recent"},
       {LauncherDefaultView::Pinned, "pinned", "settings.options.shell.launcher-default-view.pinned"},
-      {LauncherDefaultView::AllApps, "all_apps", "settings.options.shell.launcher-default-view.all-apps"},
+      {LauncherDefaultView::All, "all", "settings.options.shell.launcher-default-view.all"},
       {LauncherDefaultView::Categories, "categories", "settings.options.shell.launcher-default-view.categories"},
   };
 
   struct LauncherConfig {
     static constexpr std::int32_t kDefaultWidth = 760;
 
+    LauncherLayout layout = LauncherLayout::Full;
     std::int32_t width = kDefaultWidth;
     LauncherSearchPosition searchPosition = LauncherSearchPosition::Bottom;
     LauncherDefaultView defaultView = LauncherDefaultView::Recent;
+    // Simple layout only: show the category chip row under the search field.
+    bool categories = true;
     bool categoryIconsOnly = false;
     bool showSettingsButton = true;
     bool showSessionButton = true;

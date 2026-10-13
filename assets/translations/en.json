@@ -727,7 +727,7 @@
         "settings": "Settings"
       },
       "navigation": {
-        "all-apps": "All Apps",
+        "all": "All",
         "categories": "Categories",
         "pinned": "Pinned",
         "providers": "Providers",
@@ -1593,10 +1593,14 @@
       },
       "shell": {
         "launcher-default-view": {
-          "all-apps": "All Apps",
+          "all": "All",
           "categories": "Categories",
           "pinned": "Pinned",
           "recent": "Recent"
+        },
+        "launcher-layout": {
+          "full": "Full",
+          "simple": "Simple"
         },
         "launcher-search-position": {
           "bottom": "Bottom",
@@ -2626,7 +2630,7 @@
           "label": "Auto-Paste"
         },
         "launcher-categories": {
-          "description": "Display category filters in the launcher; reveal with F6, then cycle with F6 and Shift+F6",
+          "description": "Show the All, Recently Used, and category chips under the search field",
           "label": "Show Categories"
         },
         "launcher-category-icons-only": {
@@ -2670,12 +2674,16 @@
           "label": "Windows in Global Search"
         },
         "launcher-grid": {
-          "description": "Show applications, global search results, and the provider overview as icon grids",
-          "label": "App Grid View"
+          "description": "Show results and the provider overview as an icon grid instead of rows",
+          "label": "Grid View"
         },
         "launcher-ignored-panels": {
           "description": "Panels the panel provider never lists (e.g. authentication prompts, the setup wizard)",
           "label": "Panels Ignored"
+        },
+        "launcher-layout": {
+          "description": "Full adds view tabs and a toolbar with your profile and shortcuts; Simple shows a search field, optional category chips, and results",
+          "label": "Layout"
         },
         "launcher-pinned-apps": {
           "description": "Desktop entry IDs shown in manual order in the Pinned view",

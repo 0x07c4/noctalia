@@ -1835,7 +1835,7 @@ void SettingsWindow::refreshSettingsRegistry(const Config& cfg) {
   if (m_resetLauncherUsage) {
     auto it = std::ranges::find_if(m_settingsRegistry, [](const settings::SettingEntry& e) {
       return e.section == settings::SettingsSection::Launcher
-          && e.group == "launcher"
+          && e.group == "history"
           && e.path == std::vector<std::string>{"shell", "launcher", "sort_by_usage"};
     });
     if (it != m_settingsRegistry.end()) {
@@ -1843,7 +1843,7 @@ void SettingsWindow::refreshSettingsRegistry(const Config& cfg) {
     }
     settings::SettingEntry btn{
         .section = settings::SettingsSection::Launcher,
-        .group = "launcher",
+        .group = "history",
         .title = i18n::tr("settings.schema.panels.launcher-reset-usage.label"),
         .subtitle = i18n::tr("settings.schema.panels.launcher-reset-usage.description"),
         .path = {},

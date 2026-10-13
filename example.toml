@@ -80,9 +80,11 @@ open_near_click_wallpaper      = false # for attached/floating placement, follow
 open_near_click_session        = false # for attached/floating placement, follow the bar click instead of bar-center
 
 [shell.launcher]
-width = 760                              # panel width in pixels (560–1200)
-search_position = "top"                  # top | bottom; whole launcher toolbar position
-default_view   = "recent"                # recent | pinned | all_apps | categories
+layout = "full"                          # full | simple; simple is search, optional category chips, and results at 560x500
+width = 760                              # full layout: panel width in pixels (560–1200)
+search_position = "top"                  # full layout: top | bottom; whole launcher toolbar position
+default_view   = "recent"                # full layout: recent | pinned | all | categories
+categories = true                        # simple layout: show the category chip row under the search field
 category_icons_only = false             # hide app category labels; keep names in hover tooltips
 show_settings_button = true              # show the Settings shortcut beside search
 show_session_button = true               # show the session-actions shortcut beside search
