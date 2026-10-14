@@ -1146,18 +1146,6 @@ void WaylandConnection::activateSurface(wl_surface* surface) {
   }
 }
 
-void WaylandConnection::activateToplevelForAppId(std::string_view appId) {
-  if (!hasForeignToplevelManager() || appId.empty()) {
-    return;
-  }
-  const std::string idLower = StringUtils::toLower(std::string(appId));
-  const auto windows = windowsForApp(idLower, idLower);
-  if (windows.empty()) {
-    return;
-  }
-  activateToplevel(windows.back().handle);
-}
-
 wl_display* WaylandConnection::display() const noexcept { return m_display; }
 
 std::string WaylandConnection::describeDisplayError(int operationErrno) const {

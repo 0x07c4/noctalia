@@ -235,7 +235,6 @@ public:
   [[nodiscard]] bool hasXdgActivation() const noexcept;
   [[nodiscard]] std::string requestActivationToken(wl_surface* surface) const;
   void activateSurface(wl_surface* surface);
-  void activateToplevelForAppId(std::string_view appId);
 
   [[nodiscard]] std::optional<ActiveToplevel> activeToplevel() const;
   [[nodiscard]] std::optional<ActiveToplevel>
