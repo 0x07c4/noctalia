@@ -4856,6 +4856,10 @@
         "workspace-label-placement": {
           "description": "Corner, centered on the edge, or inside the pill",
           "label": "Workspace Label Placement"
+        },
+        "umbriel_audio_provider_enabled": {
+          "label": "Provide audio to Umbriel",
+          "description": "Share the audio spectrum with Umbriel effects, even without a visualizer widget."
         }
       },
       "types": {

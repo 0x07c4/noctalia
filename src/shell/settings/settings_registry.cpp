@@ -2536,6 +2536,12 @@ namespace settings {
     // Umbriel-specific integrations
     if (env.umbrielOverviewTypeToLaunchSupported) {
       entries.push_back(makeEntry(
+          SettingsSection::Umbriel, "audio", tr("settings.widgets.settings.umbriel_audio_provider_enabled.label"),
+          tr("settings.widgets.settings.umbriel_audio_provider_enabled.description"),
+          {"shell", "umbriel_audio_provider_enabled"}, ToggleSetting{cfg.shell.umbrielAudioProviderEnabled},
+          "umbriel audio spectrum shader effects provider"
+      ));
+      entries.push_back(makeEntry(
           SettingsSection::Umbriel, "overview", tr("settings.schema.shell.umbriel-overview-type-to-launch.label"),
           tr("settings.schema.shell.umbriel-overview-type-to-launch.description"),
           {"shell", "umbriel_overview_type_to_launch_enabled"},

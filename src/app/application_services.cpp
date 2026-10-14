@@ -2,6 +2,7 @@
 #include "application.h"
 #include "application_internal.h"
 #include "compositors/compositor_detect.h"
+#include "compositors/umbriel/umbriel_audio_provider.h"
 #include "config/config_export.h"
 #include "config/config_types.h"
 #include "core/build_info.h"
@@ -1428,6 +1429,43 @@ void Application::initBrightnessAndPipewire() {
     m_easyEffectsService->refreshProfiles();
     m_easyEffectsService->refreshActiveEffectsProfiles();
     m_pipewireSpectrum = std::make_unique<PipeWireSpectrum>(*m_pipewireService);
+    m_umbrielAudioProvider = std::make_unique<compositors::umbriel::UmbrielAudioProvider>(
+        [this]() -> std::optional<compositors::umbriel::UmbrielAudioProvider::Bands> {
+          const auto health = m_pipewireSpectrum->captureHealth();
+          if (health == PipeWireSpectrum::CaptureHealth::Unavailable) {
+            return std::nullopt;
+          }
+          compositors::umbriel::UmbrielAudioProvider::Bands bands{};
+          if (health == PipeWireSpectrum::CaptureHealth::Active) {
+            const auto& values = m_pipewireSpectrum->values(m_umbrielAudioListener);
+            if (values.size() != bands.size()) {
+              return std::nullopt;
+            }
+            std::ranges::copy(values, bands.begin());
+          }
+          return bands;
+        }
+    );
+    auto applyUmbrielAudioConfig = [this]() {
+      const bool enabled = compositors::isUmbriel() && m_configService.config().shell.umbrielAudioProviderEnabled;
+      m_umbrielAudioProvider->setEnabled(enabled);
+      if (enabled && m_umbrielAudioListener == 0) {
+        m_umbrielAudioListener =
+            m_pipewireSpectrum->addChangeListener(64, [this]() { m_umbrielAudioProvider->notifyChanged(); });
+      } else if (!enabled && m_umbrielAudioListener != 0) {
+        m_pipewireSpectrum->removeChangeListener(m_umbrielAudioListener);
+        m_umbrielAudioListener = 0;
+      }
+    };
+    applyUmbrielAudioConfig();
+    m_configService.addReloadCallback(
+        [this, applyUmbrielAudioConfig]() {
+          if (m_umbrielAudioProvider != nullptr) {
+            applyUmbrielAudioConfig();
+          }
+        },
+        "umbriel-audio"
+    );
     m_soundPlayer = std::make_shared<SoundPlayer>(m_pipewireService->loop());
 
     auto applySoundConfig = [this]() {
@@ -1457,6 +1495,8 @@ void Application::initBrightnessAndPipewire() {
   } catch (const std::exception& e) {
     kLog.warn("pipewire disabled: {}", e.what());
     m_soundPlayer.reset();
+    m_umbrielAudioProvider.reset();
+    m_umbrielAudioListener = 0;
     m_pipewireSpectrum.reset();
     m_easyEffectsService.reset();
     m_pipewireService.reset();
