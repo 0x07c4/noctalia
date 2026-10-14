@@ -1165,6 +1165,12 @@ if build_tests
     command: [wayland_scanner, 'server-header', '@INPUT@', '@OUTPUT@'],
   )
 
+  _idle_test_server_h = custom_target('ext-idle-notify-v1-test-server-header',
+    input: wayland_protos_dir / 'staging/ext-idle-notify/ext-idle-notify-v1.xml',
+    output: 'ext-idle-notify-v1-test-server-protocol.h',
+    command: [wayland_scanner, 'server-header', '@INPUT@', '@OUTPUT@'],
+  )
+
   _cpp_test_names = [
     'annotation_document',
     'annotation_raster',
@@ -1342,6 +1348,13 @@ if build_tests
     override_options: ['b_ndebug=false'],
   )
   test('screencopy_connection_isolation', screencopy_connection_isolation_exe)
+
+  idle_manager_exe = executable('idle_manager_test',
+    sources: files('tests/idle_manager_test.cpp') + [_idle_test_server_h],
+    dependencies: [noctalia_core_dep, wayland_server_dep],
+    override_options: ['b_ndebug=false'],
+  )
+  test('idle_manager', idle_manager_exe)
 
   upower_integration_exe = executable('upower_charge_limit_integration_test',
     sources: files('tests/upower_charge_limit_integration_test.cpp'),
