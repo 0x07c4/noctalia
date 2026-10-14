@@ -877,6 +877,34 @@ void LockSurface::startExitTransition() {
   requestRedraw();
 }
 
+void LockSurface::suppressEntryTransition() {
+  const bool entering = m_transitionPhase == TransitionPhase::Cover
+      || m_transitionPhase == TransitionPhase::FinalPrime
+      || m_transitionPhase == TransitionPhase::Ready
+      || m_transitionPhase == TransitionPhase::Entering
+      || m_transitionPhase == TransitionPhase::EnterEndpoint;
+  if (entering) {
+    invalidateSleepFrame();
+    discardPendingFrameCallback();
+  }
+  cancelTransitionAnimation();
+  m_enterTransitionRequested = false;
+  m_transitionPhase = TransitionPhase::Disabled;
+  m_transitionProgress = 1.0F;
+  auto captureTexture = std::exchange(m_transitionCaptureTexture, {});
+  syncTransitionCover();
+  if (captureTexture.id != 0 && renderContext() != nullptr) {
+    renderContext()->backend().makeCurrentNoSurface();
+    renderContext()->textureManager().unload(captureTexture);
+  }
+  if (!m_useDesktopCaptureBackground) {
+    m_desktopCapture.reset();
+  }
+  m_captureDirty = true;
+  requestLayout();
+  requestRedraw();
+}
+
 bool LockSurface::transitionInputReady() const noexcept {
   return m_transitionPhase == TransitionPhase::Disabled || m_transitionPhase == TransitionPhase::Stable;
 }

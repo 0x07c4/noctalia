@@ -49,6 +49,8 @@ namespace compositors {
   public:
     virtual ~FocusedOutputBackend() = default;
     [[nodiscard]] virtual std::optional<std::string> focusedOutputName() const = 0;
+    [[nodiscard]] virtual std::unordered_map<std::string, bool> outputPowerStates() const = 0;
+    virtual void setOutputPowerChangeCallback(CompositorPlatform::ChangeCallback callback) = 0;
   };
 
   class OutputPowerBackend {
@@ -250,6 +252,19 @@ namespace {
 
     [[nodiscard]] std::optional<std::string> focusedOutputName() const override {
       return m_backend.focusedOutputName();
+    }
+
+    [[nodiscard]] std::unordered_map<std::string, bool> outputPowerStates() const override {
+      if constexpr (requires { m_backend.outputPowerStates(); }) {
+        return m_backend.outputPowerStates();
+      }
+      return {};
+    }
+
+    void setOutputPowerChangeCallback(CompositorPlatform::ChangeCallback callback) override {
+      if constexpr (requires { m_backend.setOutputPowerChangeCallback(std::move(callback)); }) {
+        m_backend.setOutputPowerChangeCallback(std::move(callback));
+      }
     }
 
   private:
@@ -1623,10 +1638,49 @@ bool CompositorPlatform::setOutputPower(bool on) const {
   if (m_outputPowerBackend == nullptr) {
     return false;
   }
-  if (m_outputPowerBackend->isPerOutputTargeted()) {
-    m_lastRequestedOutputPowerState = on;
+  // A failed multi-output request may still have powered off some outputs.
+  if (!on) {
+    m_lastRequestedOutputPowerState = false;
   }
-  return m_outputPowerBackend->setOutputPower(m_wayland, on);
+  if (!m_outputPowerBackend->setOutputPower(m_wayland, on)) {
+    return false;
+  }
+  m_lastRequestedOutputPowerState = on;
+  return true;
+}
+
+bool CompositorPlatform::shouldSuppressLockTransition() const {
+  if (m_outputPowerOffPending) {
+    return true;
+  }
+  std::unordered_map<std::string, bool> states;
+  for (const auto& backend : m_focusedOutputBackends) {
+    states = backend->outputPowerStates();
+  }
+  bool hasOutput = false;
+  bool allKnown = true;
+  for (const auto& output : m_wayland.outputs()) {
+    if (!output.done || output.output == nullptr || !output.hasUsableGeometry()) {
+      continue;
+    }
+    hasOutput = true;
+    const auto state = states.find(output.connectorName);
+    if (state == states.end()) {
+      allKnown = false;
+    } else if (!state->second) {
+      return true;
+    }
+  }
+  if (hasOutput && allKnown) {
+    return false;
+  }
+  return m_lastRequestedOutputPowerState == false;
+}
+
+void CompositorPlatform::setOutputPowerChangeCallback(ChangeCallback callback) {
+  for (auto& backend : m_focusedOutputBackends) {
+    backend->setOutputPowerChangeCallback(callback);
+  }
 }
 
 bool CompositorPlatform::tracksOverviewState() const noexcept {

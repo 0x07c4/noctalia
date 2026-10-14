@@ -376,6 +376,7 @@ void Application::initLockScreenAndSession() {
       },
       [this]() { releaseSleepDelayInhibitIfPending(); }
   );
+  m_compositorPlatform.setOutputPowerChangeCallback([this]() { m_lockScreen.onOutputPowerChanged(); });
   if (m_logindService != nullptr) {
     m_logindService->setSessionLockIntegrationEnabled(m_configService.isLockScreenEnabled());
     m_logindService->setLockBeforeSuspendEnabled(m_configService.shouldLockBeforeSuspend());

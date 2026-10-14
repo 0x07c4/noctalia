@@ -67,6 +67,7 @@ public:
       std::optional<LockscreenTransitionKind> transition, const LockscreenTransitionParams& params, float durationMs
   );
   void startEnterTransition();
+  void suppressEntryTransition();
   void startExitTransition();
   [[nodiscard]] bool transitionInputReady() const noexcept;
   [[nodiscard]] bool exitTransitionComplete() const noexcept;

@@ -80,6 +80,11 @@ public:
   [[nodiscard]] bool isReadyForSleep() const;
   /// Revoke passwordless unlock and wait for an uncovered lock frame before sleep.
   void prepareForSleep();
+  /// Finish entry and acknowledge the safe lock buffers before powering off.
+  /// Calls `done(false)` if cancelled or no safe frame arrives before the deadline.
+  void prepareForOutputPowerOff(std::function<void(bool)> done);
+  void cancelOutputPowerOff();
+  void onOutputPowerChanged();
 
   template <typename Fn> void forEachSurface(Fn&& fn) {
     for (auto& instance : m_instances) {
@@ -118,6 +123,9 @@ private:
   void cancelPendingAfterLocked();
   void armSleepReadyTimeout();
   void handleSleepReady();
+  void suppressEntryTransition();
+  void flushPendingOutputPowerOff();
+  void armOutputPowerOffTimeout();
   void applyLockscreenStyle(LockSurface& surface) const;
   void applyOutputRestriction();
   void applyWallpaperStyleToSurfaces();
@@ -172,6 +180,7 @@ private:
   bool m_desktopCapturesPrimed = false;
   std::uint64_t m_desktopCaptureGeneration = 0;
   bool m_lockDeferred = false;
+  bool m_transitionSuppressed = false;
   bool m_unlocking = false;
   bool m_unlockFinishQueued = false;
   std::optional<LockscreenTransition> m_activeTransition;
@@ -179,6 +188,9 @@ private:
   float m_transitionDurationMs = 1500.0F;
   std::function<void()> m_pendingAfterLocked;
   std::uint64_t m_afterLockedGeneration = 0;
+  std::function<void(bool)> m_pendingOutputPowerOff;
+  std::uint64_t m_outputPowerOffGeneration = 0;
+  bool m_outputPowerOffQueued = false;
   std::function<void()> m_onSessionLocked;
   std::function<void()> m_onSessionUnlocked;
   std::function<void()> m_onLockAborted;
@@ -189,6 +201,7 @@ private:
   const WeatherService* m_weather = nullptr;
   HttpClient* m_httpClient = nullptr;
   Timer m_suspendTimeoutTimer;
+  Timer m_outputPowerOffTimer;
   // CLOCK_BOOTTIME millis when the lock flow started; grace expires gracePeriodSeconds after it.
   std::int64_t m_lockedAtMillis = 0;
   bool m_graceAllowed = false;

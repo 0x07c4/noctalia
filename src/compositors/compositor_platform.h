@@ -184,6 +184,9 @@ public:
 
   [[nodiscard]] bool requestSessionExit() const;
   [[nodiscard]] bool setOutputPower(bool on) const;
+  void setOutputPowerOffPending(bool pending) noexcept { m_outputPowerOffPending = pending; }
+  [[nodiscard]] bool shouldSuppressLockTransition() const;
+  void setOutputPowerChangeCallback(ChangeCallback callback);
 
   [[nodiscard]] bool tracksOverviewState() const noexcept;
   [[nodiscard]] bool hasOverviewState() const noexcept;
@@ -223,6 +226,7 @@ private:
   std::vector<std::unique_ptr<compositors::FocusedOutputBackend>> m_focusedOutputBackends;
   std::unique_ptr<compositors::OutputPowerBackend> m_outputPowerBackend;
   mutable std::optional<bool> m_lastRequestedOutputPowerState;
+  bool m_outputPowerOffPending = false;
   std::unique_ptr<KeyboardLayoutBackend> m_keyboardLayoutBackend;
   ChangeCallback m_workspaceChangeCallback;
   ChangeCallback m_overviewChangeCallback;

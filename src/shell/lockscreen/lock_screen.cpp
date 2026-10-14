@@ -156,6 +156,9 @@ bool LockScreen::lock() {
     notifyLockAborted();
     return false;
   }
+  if (m_compositorPlatform != nullptr && m_compositorPlatform->shouldSuppressLockTransition()) {
+    suppressEntryTransition();
+  }
   if (isActive() || m_lockStarting) {
     return true;
   }
@@ -174,6 +177,7 @@ bool LockScreen::lock() {
     // No output can ever show a lock surface, so run any pending post-lock action (e.g. suspend)
     // immediately instead of holding it until a monitor reconnects.
     dispatchPendingAfterLocked();
+    flushPendingOutputPowerOff();
     return true;
   }
 
@@ -193,9 +197,15 @@ bool LockScreen::lock() {
     m_lockDeferred = true;
     kLog.warn("outputs disappeared while preparing lock screen; lock deferred until an output is connected");
     dispatchPendingAfterLocked();
+    flushPendingOutputPowerOff();
     return true;
   }
 
+  if (!m_transitionSuppressed
+      && m_compositorPlatform != nullptr
+      && m_compositorPlatform->shouldSuppressLockTransition()) {
+    suppressEntryTransition();
+  }
   chooseTransition();
 
   m_lock = ext_session_lock_manager_v1_lock(m_wayland->sessionLockManager());
@@ -235,7 +245,10 @@ bool LockScreen::lock() {
 void LockScreen::unlock() {
   m_lockDeferred = false;
   cancelPendingAfterLocked();
+  cancelOutputPowerOff();
   if (!isActive()) {
+    m_transitionSuppressed = false;
+    invalidateDesktopCaptures();
     return;
   }
 
@@ -301,6 +314,7 @@ void LockScreen::finishUnlock() {
   m_wayland->stopKeyRepeat();
   invalidateDesktopCaptures();
   m_activeTransition.reset();
+  m_transitionSuppressed = false;
 
   // Tear down widgets while lock surfaces still exist. Session hooks run only after
   // isActive() is false so LockscreenWidgetsController::applyVisibility() hides first.
@@ -572,6 +586,7 @@ void LockScreen::onSystemResumed() {
   }
   resetGracePeriod();
   cancelPendingAfterLocked();
+  cancelOutputPowerOff();
 }
 
 bool LockScreen::isSessionLocked() const noexcept { return m_locked; }
@@ -585,6 +600,102 @@ void LockScreen::prepareForSleep() {
   } else if (m_locked) {
     armSleepReadyTimeout();
   }
+}
+
+void LockScreen::suppressEntryTransition() {
+  if (m_transitionSuppressed || m_unlocking) {
+    return;
+  }
+  m_transitionSuppressed = true;
+  m_activeTransition.reset();
+  if (m_configService == nullptr || !m_configService->config().lockscreen.blurredDesktop) {
+    invalidateDesktopCaptures();
+  }
+  for (auto& instance : m_instances) {
+    if (instance.surface != nullptr) {
+      instance.surface->suppressEntryTransition();
+    }
+  }
+  kLog.debug("desktop lock transition suppressed for powered-off outputs");
+}
+
+void LockScreen::onOutputPowerChanged() {
+  if (m_compositorPlatform == nullptr || !m_compositorPlatform->shouldSuppressLockTransition()) {
+    return;
+  }
+  if (isActive() || m_lockStarting || m_lockDeferred) {
+    suppressEntryTransition();
+  } else if (m_configService == nullptr || !m_configService->config().lockscreen.blurredDesktop) {
+    invalidateDesktopCaptures();
+  }
+}
+
+void LockScreen::prepareForOutputPowerOff(std::function<void(bool)> done) {
+  cancelOutputPowerOff();
+  if (!done) {
+    return;
+  }
+  if (m_unlocking) {
+    done(false);
+    return;
+  }
+  if (!isActive() && !m_lockStarting) {
+    if (m_lockDeferred) {
+      suppressEntryTransition();
+    }
+    if (m_configService == nullptr || !m_configService->config().lockscreen.blurredDesktop) {
+      invalidateDesktopCaptures();
+    }
+    done(true);
+    return;
+  }
+  m_pendingOutputPowerOff = std::move(done);
+  suppressEntryTransition();
+  armOutputPowerOffTimeout();
+  flushPendingOutputPowerOff();
+}
+
+void LockScreen::cancelOutputPowerOff() {
+  ++m_outputPowerOffGeneration;
+  m_outputPowerOffQueued = false;
+  m_outputPowerOffTimer.stop();
+  if (m_pendingOutputPowerOff) {
+    auto pending = std::move(m_pendingOutputPowerOff);
+    m_pendingOutputPowerOff = {};
+    pending(false);
+  }
+}
+
+void LockScreen::armOutputPowerOffTimeout() {
+  if (m_outputPowerOffTimer.active() || !m_pendingOutputPowerOff) {
+    return;
+  }
+  m_outputPowerOffTimer.start(std::chrono::seconds(3), [this]() {
+    kLog.warn("output power-off cancelled: safe lock frame was not acknowledged before the deadline");
+    cancelOutputPowerOff();
+  });
+}
+
+void LockScreen::flushPendingOutputPowerOff() {
+  if (!m_pendingOutputPowerOff || m_outputPowerOffQueued || ((!isReadyForSleep()) && (isActive() || m_lockStarting))) {
+    return;
+  }
+  m_outputPowerOffQueued = true;
+  const auto generation = m_outputPowerOffGeneration;
+  const std::weak_ptr<void> guard = m_aliveGuard;
+  DeferredCall::callLater([this, guard, generation]() {
+    if (guard.expired() || generation != m_outputPowerOffGeneration) {
+      return;
+    }
+    m_outputPowerOffQueued = false;
+    if ((isActive() || m_lockStarting) && !isReadyForSleep()) {
+      return;
+    }
+    m_outputPowerOffTimer.stop();
+    auto pending = std::move(m_pendingOutputPowerOff);
+    m_pendingOutputPowerOff = {};
+    pending(true);
+  });
 }
 
 void LockScreen::armSleepReadyTimeout() {
@@ -619,6 +730,7 @@ void LockScreen::handleSleepReady() {
     m_onReadyForSleep();
   }
   (void)tryFlushPendingAfterLocked();
+  flushPendingOutputPowerOff();
 }
 
 bool LockScreen::tryFlushPendingAfterLocked() {
@@ -737,6 +849,7 @@ void LockScreen::handleFinished(void* data, ext_session_lock_v1* /*lock*/) {
   const bool wasLockedInteractive = self->m_locked;
   self->resetGracePeriod();
   self->cancelPendingAfterLocked();
+  self->cancelOutputPowerOff();
   self->m_unlockTransitionTimer.stop();
   self->m_unlocking = false;
   self->m_unlockFinishQueued = false;
@@ -759,6 +872,7 @@ void LockScreen::handleFinished(void* data, ext_session_lock_v1* /*lock*/) {
   self->m_statusIsError = false;
   self->invalidateDesktopCaptures();
   self->m_activeTransition.reset();
+  self->m_transitionSuppressed = false;
   if (wasLockedInteractive && self->m_onSessionUnlocked) {
     self->m_onSessionUnlocked();
   } else if (!wasLockedInteractive && self->m_onLockAborted) {
@@ -812,7 +926,7 @@ bool LockScreen::shouldCaptureDesktop() const {
     return false;
   }
   const auto& lockscreen = m_configService->config().lockscreen;
-  return lockscreen.blurredDesktop || !lockscreen.transitions.empty();
+  return lockscreen.blurredDesktop || (!m_transitionSuppressed && !lockscreen.transitions.empty());
 }
 
 bool LockScreen::allSurfacesReady() const {
@@ -835,6 +949,11 @@ void LockScreen::primeDesktopCaptures() {
     return;
   }
   invalidateDesktopCaptures();
+  if (m_compositorPlatform != nullptr
+      && m_compositorPlatform->shouldSuppressLockTransition()
+      && (m_configService == nullptr || !m_configService->config().lockscreen.blurredDesktop)) {
+    return;
+  }
   if (!shouldCaptureDesktop()) {
     return;
   }
@@ -959,6 +1078,9 @@ void LockScreen::chooseTransition() {
   m_activeTransition.reset();
   m_transitionParams = {};
   m_transitionDurationMs = 1500.0F;
+  if (m_transitionSuppressed) {
+    return;
+  }
   if (m_configService == nullptr || m_wayland == nullptr || !m_wayland->hasScreencopy()) {
     return;
   }
@@ -1136,6 +1258,8 @@ void LockScreen::createInstance(const WaylandOutput& output) {
 }
 
 void LockScreen::notifyLockAborted() {
+  m_transitionSuppressed = false;
+  cancelOutputPowerOff();
   if (m_onLockAborted) {
     m_onLockAborted();
   }
@@ -1143,9 +1267,11 @@ void LockScreen::notifyLockAborted() {
 
 void LockScreen::resetLockState() {
   cancelPendingAfterLocked();
+  cancelOutputPowerOff();
   m_unlockTransitionTimer.stop();
   m_lockDeferred = false;
   m_lockStarting = false;
+  m_transitionSuppressed = false;
   m_unlocking = false;
   m_unlockFinishQueued = false;
   m_activeTransition.reset();
