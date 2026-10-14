@@ -120,24 +120,14 @@ You can also enable this from **Settings → Umbriel → Overview**.
 
 ## Audio-reactive Effects
 
-Enable **Settings → Umbriel → Audio → Provide audio to Umbriel** to share Noctalia's
-existing audio analyzer with Umbriel shaders. This is optional and disabled by default:
+Enable **Settings → Umbriel → Audio → Provide audio to Umbriel** to let Umbriel's
+audio-reactive effects respond to your audio. This is disabled by default. You can also
+enable it in Noctalia's configuration:
 
 ```toml
 [shell]
 umbriel_audio_provider_enabled = true
 ```
 
-No visualizer widget is required. The provider follows the analyzer's selected output,
-shares its capture and analysis with visualizers, and reconnects automatically when Umbriel
-restarts or resumes after locking or inactivity. Disabling the setting closes the feed
-and releases its analyzer subscription.
-
-This requires Umbriel's version 2 spectrum interface and `UMBRIEL_SOCKET` in Noctalia's
-environment (normally inherited when Umbriel starts Noctalia). It sends the existing
-64-band output unchanged, ordered from low to high, without guaranteeing exact frequency
-centres. Shaders use `umbriel_audio_spectrum(position)` and `umbriel_audio_available()`.
-
-Healthy silence sends zero bands. Missing devices, unavailable routes, stream errors and
-stalled active capture stop the feed; old nonzero measurements are never kept alive by
-heartbeats. A linked, idle output can remain available without waking the analyzer's FFT.
+Enable an audio-reactive effect in Umbriel to see a response. No Noctalia visualizer widget
+is required.
