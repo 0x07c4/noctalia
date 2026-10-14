@@ -1356,6 +1356,13 @@ if build_tests
   )
   test('idle_manager', idle_manager_exe)
 
+  brightness_service_exe = executable('brightness_service_test',
+    sources: files('tests/brightness_service_test.cpp'),
+    dependencies: [noctalia_core_dep, wayland_server_dep],
+    override_options: ['b_ndebug=false'],
+  )
+  test('brightness_service', brightness_service_exe, timeout: 60)
+
   upower_integration_exe = executable('upower_charge_limit_integration_test',
     sources: files('tests/upower_charge_limit_integration_test.cpp'),
     dependencies: noctalia_core_dep,
