@@ -1292,6 +1292,7 @@ namespace noctalia::config::schema {
         enumField(&ThemeConfig::mode, "mode", kThemeModes),
         enumField(&ThemeConfig::shellMode, "shell_mode", kShellThemeModes),
         field(&ThemeConfig::pureBlackDark, "pure_black_dark"),
+        field(&ThemeConfig::syncColorScheme, "sync_color_scheme"),
         subTable(&ThemeConfig::templates, "templates", templatesSchema()),
     };
     return s;

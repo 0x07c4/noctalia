@@ -1768,6 +1768,7 @@ struct ThemeConfig {
   ThemeMode mode = ThemeMode::Dark;
   ShellThemeMode shellMode = ShellThemeMode::Follow;
   bool pureBlackDark = false;
+  bool syncColorScheme = true;
   TemplatesConfig templates;
 
   bool operator==(const ThemeConfig&) const = default;

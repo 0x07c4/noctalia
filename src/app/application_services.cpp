@@ -123,6 +123,24 @@ namespace {
       Application::s_shutdownRequested = true;
     }
   }
+
+  void syncGSettingsColorScheme(std::string_view mode) {
+    if (mode.empty()) {
+      return;
+    }
+    const std::string pref = mode == "light" ? "prefer-light" : "prefer-dark";
+    if (process::commandExists("gsettings")) {
+      std::string cmd = "gsettings set org.gnome.desktop.interface color-scheme \"";
+      cmd += pref;
+      cmd += "\"";
+      (void)process::runAsync(cmd);
+    } else if (process::commandExists("dconf")) {
+      std::string cmd = "dconf write /org/gnome/desktop/interface/color-scheme \"'";
+      cmd += pref;
+      cmd += "'\"";
+      (void)process::runAsync(cmd);
+    }
+  }
 } // namespace
 
 void Application::scheduleNotificationShellRefresh() {
@@ -701,7 +719,16 @@ void Application::initStyleThemeAndWayland() {
     }
   });
 
-  m_templateApplyService.setPaletteChangedCallback([this]() { m_hookManager.fire(HookKind::ColorsChanged); });
+  // Runs once per applied generation: the gsettings color-scheme write has to land after the
+  // gtk-theme templates, and colors_changed only concerns a palette that actually changed.
+  m_templateApplyService.setAfterApplyCallback([this](std::string_view appliedMode, bool paletteChanged) {
+    if (m_configService.config().theme.syncColorScheme) {
+      syncGSettingsColorScheme(appliedMode);
+    }
+    if (paletteChanged) {
+      m_hookManager.fire(HookKind::ColorsChanged);
+    }
+  });
 
   m_themeService.setResolvedCallback([this, lastResolvedThemeMode = std::optional<std::string>{},
                                       lastGeneratedPalette = std::optional<noctalia::theme::GeneratedPalette>{},
@@ -727,6 +754,24 @@ void Application::initStyleThemeAndWayland() {
     }
   });
   m_themeService.apply();
+  {
+    // Enabling the key alone leaves the template inputs unchanged, so no application would
+    // carry the write; sync the current mode directly.
+    static bool lastSyncColorScheme = m_configService.config().theme.syncColorScheme;
+    m_configService.addReloadCallback(
+        [this]() {
+          const bool current = m_configService.config().theme.syncColorScheme;
+          if (current == lastSyncColorScheme) {
+            return;
+          }
+          lastSyncColorScheme = current;
+          if (current) {
+            syncGSettingsColorScheme(m_themeService.resolvedMode());
+          }
+        },
+        "theme-color-scheme-sync"
+    );
+  }
   syncScriptApiWallpaperDirectory();
   syncScriptApiShellTimeFormats();
   m_configService.addReloadCallback([this]() { m_themeService.onConfigReload(); }, "theme");

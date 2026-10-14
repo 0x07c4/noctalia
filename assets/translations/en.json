@@ -1892,6 +1892,10 @@
           "description": "Show close buttons on panels, notification toasts, popups, dialogs, and the settings window",
           "label": "Show Close Buttons"
         },
+        "sync-color-scheme": {
+          "description": "Set the system dark/light preference read by browsers and other apps to follow Theme Mode",
+          "label": "Sync App Color Scheme"
+        },
         "theme-mode": {
           "description": "Choose Dark, Light, or Auto based on time of day; also applies to apps through templates",
           "label": "Theme Mode"

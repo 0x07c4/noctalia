@@ -559,6 +559,11 @@ namespace settings {
         tr("settings.schema.appearance.pure-black-dark.description"), {"theme", "pure_black_dark"},
         ToggleSetting{cfg.theme.pureBlackDark}, "oled amoled true black background contrast"
     ));
+    entries.push_back(makeEntry(
+        SettingsSection::Appearance, "theme", tr("settings.schema.appearance.sync-color-scheme.label"),
+        tr("settings.schema.appearance.sync-color-scheme.description"), {"theme", "sync_color_scheme"},
+        ToggleSetting{cfg.theme.syncColorScheme}, "gnome gtk portal dark light prefer color scheme apps"
+    ));
     {
       SettingControl fontFamilyControl =
           TextSetting{.value = cfg.shell.fontFamily, .placeholder = "sans-serif", .browseFileExtensions = {}};
