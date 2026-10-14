@@ -459,7 +459,7 @@ float stars(vec2 uv, float density, float iTime) {
 
 void main() {
     vec2 uv = v_uv;
-    float iTime = u_time * 0.01;
+    float iTime = u_time * 0.12;
     vec4 col = vec4(u_bg_color.rgb, 1.0);
 
     float aspect = u_item_width / u_item_height;
