@@ -1068,8 +1068,7 @@ void Application::initSystemBusServices() {
             m_lockScreen.resetGracePeriod();
             // Screen time must not accumulate across suspend even when lock-before-suspend is off.
             m_screenTimeService.setSuspendPaused(true);
-            // Delay inhibit (when lock_before_suspend is on) holds sleep until we lock.
-            // Do not use runAfterSessionLocked here: that slot belongs to lock-and-suspend.
+            // The readiness hook releases the delay inhibit after the revealed lock frames are acknowledged.
             if (m_skipLockOnNextSleep) {
               // Noctalia-initiated suspend: skip lock-before-sleep (plain Suspend or already locked).
               m_skipLockOnNextSleep = false;
@@ -1086,7 +1085,7 @@ void Application::initSystemBusServices() {
               }
               return;
             }
-            if (m_lockScreen.isSessionLocked()) {
+            if (m_lockScreen.isReadyForSleep()) {
               m_releaseSleepDelayWhenLocked = false;
               if (m_logindService != nullptr) {
                 m_logindService->releaseSleepDelayInhibit();
@@ -1095,6 +1094,7 @@ void Application::initSystemBusServices() {
             }
             m_releaseSleepDelayWhenLocked = true;
             if (m_lockScreen.isActive()) {
+              m_lockScreen.prepareForSleep();
               return;
             }
             if (!m_lockScreen.lock()) {
@@ -1106,7 +1106,7 @@ void Application::initSystemBusServices() {
             }
             // Deferred lock (no outputs yet) never reaches SessionLocked; do not block sleep.
             // lock() re-armed grace above; a sleep-bound lock must never offer it.
-            m_lockScreen.resetGracePeriod();
+            m_lockScreen.prepareForSleep();
             if (!m_lockScreen.isActive()) {
               m_releaseSleepDelayWhenLocked = false;
               if (m_logindService != nullptr) {

@@ -580,6 +580,7 @@ LockSurface::LockSurface(WaylandConnection& connection, ConfigService* config) :
 }
 
 LockSurface::~LockSurface() {
+  invalidateSleepFrame();
   m_aliveGuard.reset();
   releaseCaptureTextures();
   m_connection.unregisterSurface(m_surface);
@@ -800,6 +801,7 @@ bool LockSurface::usesDesktopCaptureBackground() const noexcept {
 void LockSurface::configureTransition(
     std::optional<LockscreenTransitionKind> transition, const LockscreenTransitionParams& params, float durationMs
 ) {
+  invalidateSleepFrame();
   cancelTransitionAnimation();
   m_transitionParams = params;
   m_transitionDurationMs = std::max(0.0F, durationMs);
@@ -827,6 +829,7 @@ void LockSurface::startEnterTransition() {
 }
 
 void LockSurface::startExitTransition() {
+  invalidateSleepFrame();
   m_enterTransitionRequested = false;
   if (m_transitionPhase == TransitionPhase::ExitComplete
       || m_transitionPhase == TransitionPhase::ExitEndpoint
@@ -899,6 +902,7 @@ void LockSurface::setBlackout(bool blackout) {
   if (m_blackout == blackout) {
     return;
   }
+  invalidateSleepFrame();
   m_blackout = blackout;
   if (m_blackout) {
     m_inputDispatcher.setFocus(nullptr);
@@ -1014,7 +1018,7 @@ void LockSurface::handleConfigure(
   auto* self = static_cast<LockSurface*>(data);
   self->m_receivedConfigure = true;
   if (self->width() != width || self->height() != height) {
-    self->m_firstFrameRendered = false;
+    self->invalidateSleepFrame();
   }
   ext_session_lock_surface_v1_ack_configure(lockSurface, serial);
   self->Surface::onConfigure(width, height);
@@ -1073,6 +1077,7 @@ void LockSurface::syncTransitionCover() {
 
   const bool visible = m_transitionCaptureTexture.id != 0
       && m_transitionPhase != TransitionPhase::Disabled
+      && m_transitionPhase != TransitionPhase::EnterEndpoint
       && m_transitionPhase != TransitionPhase::Stable;
   m_transitionCover->setVisible(visible);
   m_transitionCover->setTexture(m_transitionCaptureTexture.id);
@@ -1106,7 +1111,7 @@ void LockSurface::beginEnterAnimation() {
       [this]() {
         m_transitionAnimation = 0;
         m_transitionProgress = 1.0F;
-        m_transitionPhase = TransitionPhase::Stable;
+        m_transitionPhase = TransitionPhase::EnterEndpoint;
         syncTransitionCover();
         requestRedraw();
         notifyTransitionStateChanged();
@@ -2063,12 +2068,14 @@ void LockSurface::applyBlurredDesktopTexture() {
 }
 
 void LockSurface::onGpuResourcesInvalidated() {
+  invalidateSleepFrame();
   const bool exitWasActive =
       m_transitionPhase == TransitionPhase::Exiting || m_transitionPhase == TransitionPhase::ExitEndpoint;
   const bool entryWasActive = m_transitionPhase == TransitionPhase::Cover
       || m_transitionPhase == TransitionPhase::FinalPrime
       || m_transitionPhase == TransitionPhase::Ready
-      || m_transitionPhase == TransitionPhase::Entering;
+      || m_transitionPhase == TransitionPhase::Entering
+      || m_transitionPhase == TransitionPhase::EnterEndpoint;
   cancelTransitionAnimation();
   releaseCaptureTextures();
 
@@ -2098,6 +2105,7 @@ void LockSurface::prepareForGraphicsReset() noexcept {
 }
 
 void LockSurface::forceRepaintAfterResume() {
+  invalidateSleepFrame();
   discardPendingFrameCallback();
   const bool exiting =
       m_transitionPhase == TransitionPhase::Exiting || m_transitionPhase == TransitionPhase::ExitEndpoint;
@@ -2115,14 +2123,59 @@ void LockSurface::forceRepaintAfterResume() {
   requestRedraw();
 }
 
-void LockSurface::onFrameCallbackDone() {
-  if (!m_firstFrameRendered) {
-    m_firstFrameRendered = true;
-    if (m_renderCallback) {
-      m_renderCallback();
+void LockSurface::invalidateSleepFrame() {
+  m_sleepFrameReady = false;
+  if (m_sleepFrameCallback != nullptr) {
+    wl_callback_destroy(m_sleepFrameCallback);
+    m_sleepFrameCallback = nullptr;
+  }
+}
+
+void LockSurface::render() {
+  if (m_surface != nullptr
+      && renderContext() != nullptr
+      && renderTarget().isReady()
+      && m_locked
+      && !m_sleepFrameReady
+      && m_sleepFrameCallback == nullptr
+      && (m_transitionPhase == TransitionPhase::Disabled
+          || m_transitionPhase == TransitionPhase::EnterEndpoint
+          || m_transitionPhase == TransitionPhase::Stable)) {
+    // This callback belongs to the uncovered buffer committed by this render, not an earlier animation frame.
+    static const wl_callback_listener listener = {.done = &LockSurface::handleSleepFrameDone};
+    m_sleepFrameCallback = wl_surface_frame(m_surface);
+    if (m_sleepFrameCallback != nullptr) {
+      wl_callback_add_listener(m_sleepFrameCallback, &listener, this);
     }
   }
+  Surface::render();
+}
 
+void LockSurface::handleSleepFrameDone(void* data, wl_callback* callback, std::uint32_t /*callbackData*/) {
+  auto* self = static_cast<LockSurface*>(data);
+  if (callback != self->m_sleepFrameCallback) {
+    return;
+  }
+  wl_callback_destroy(callback);
+  self->m_sleepFrameCallback = nullptr;
+  if (!self->m_locked
+      || (self->m_transitionPhase != TransitionPhase::Disabled
+          && self->m_transitionPhase != TransitionPhase::EnterEndpoint
+          && self->m_transitionPhase != TransitionPhase::Stable)) {
+    return;
+  }
+  self->m_sleepFrameReady = true;
+  if (self->m_transitionPhase == TransitionPhase::EnterEndpoint) {
+    self->m_transitionPhase = TransitionPhase::Stable;
+    self->notifyTransitionStateChanged();
+  }
+  kLog.debug("lock surface ready for sleep output={}", self->m_outputKey);
+  if (self->m_sleepReadyCallback) {
+    self->m_sleepReadyCallback();
+  }
+}
+
+void LockSurface::onFrameCallbackDone() {
   if (m_transitionPhase == TransitionPhase::Cover) {
     m_transitionPhase = TransitionPhase::FinalPrime;
     requestUpdate();

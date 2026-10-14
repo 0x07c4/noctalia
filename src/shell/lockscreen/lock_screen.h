@@ -46,7 +46,8 @@ public:
       SharedTextureCache* textureCache, SystemBus* systemBus, CompositorPlatform* compositorPlatform
   );
   void setSessionHooks(
-      std::function<void()> onLocked, std::function<void()> onUnlocked, std::function<void()> onLockAborted
+      std::function<void()> onLocked, std::function<void()> onUnlocked, std::function<void()> onLockAborted,
+      std::function<void()> onReadyForSleep
   );
   void setLoginBoxServices(
       SessionActionRunner* sessionActions, MprisService* mpris, const WeatherService* weather, HttpClient* httpClient
@@ -76,6 +77,9 @@ public:
   void onKeyboardEvent(const KeyboardEvent& event);
   [[nodiscard]] bool isActive() const noexcept;
   [[nodiscard]] bool isSessionLocked() const noexcept;
+  [[nodiscard]] bool isReadyForSleep() const;
+  /// Revoke passwordless unlock and wait for an uncovered lock frame before sleep.
+  void prepareForSleep();
 
   template <typename Fn> void forEachSurface(Fn&& fn) {
     for (auto& instance : m_instances) {
@@ -85,8 +89,8 @@ public:
     }
   }
 
-  /// Runs `fn` after the session reaches interactive lock (`m_locked`), or immediately if already locked.
-  /// Used so suspend runs after lock surfaces exist. Cleared if lock fails or the lock request is aborted.
+  /// Runs `fn` once every lock surface has acknowledged its fully revealed frame.
+  /// Cleared if lock fails, unlocks, aborts, or the system resumes before dispatch.
   void runAfterSessionLocked(std::function<void()> fn);
 
   /// Revokes the grace window: in-flight grace unlock stops working, and arming is
@@ -110,7 +114,10 @@ private:
   [[nodiscard]] bool shouldCaptureDesktop() const;
   [[nodiscard]] bool allSurfacesReady() const;
   bool tryFlushPendingAfterLocked();
-  void dispatchPendingAfterLocked();
+  void dispatchPendingAfterLocked(bool timedOut = false);
+  void cancelPendingAfterLocked();
+  void armSleepReadyTimeout();
+  void handleSleepReady();
   void applyLockscreenStyle(LockSurface& surface) const;
   void applyOutputRestriction();
   void applyWallpaperStyleToSurfaces();
@@ -171,9 +178,12 @@ private:
   LockscreenTransitionParams m_transitionParams;
   float m_transitionDurationMs = 1500.0F;
   std::function<void()> m_pendingAfterLocked;
+  std::uint64_t m_afterLockedGeneration = 0;
   std::function<void()> m_onSessionLocked;
   std::function<void()> m_onSessionUnlocked;
   std::function<void()> m_onLockAborted;
+  std::function<void()> m_onReadyForSleep;
+  std::shared_ptr<void> m_aliveGuard = std::make_shared<int>(0);
   SessionActionRunner* m_sessionActions = nullptr;
   MprisService* m_mpris = nullptr;
   const WeatherService* m_weather = nullptr;
