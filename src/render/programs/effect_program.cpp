@@ -1,6 +1,7 @@
 #include "render/programs/effect_program.h"
 
 #include <array>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -487,6 +488,26 @@ void main() {
 }
 )";
 
+  // Slot in m_programs. Fog has no slot of its own; draw() renders it with the Cloud program.
+  [[nodiscard]] std::optional<std::size_t> programIndex(EffectType type) {
+    switch (type) {
+    case EffectType::Sun:
+      return 0;
+    case EffectType::Snow:
+      return 1;
+    case EffectType::Rain:
+      return 2;
+    case EffectType::Cloud:
+      return 3;
+    case EffectType::Stars:
+      return 4;
+    case EffectType::None:
+    case EffectType::Fog:
+      return std::nullopt;
+    }
+    return std::nullopt;
+  }
+
 } // namespace
 
 void EffectProgram::ensureInitialized() {
@@ -494,11 +515,11 @@ void EffectProgram::ensureInitialized() {
     return;
   }
 
-  initProgram(0, kSunFragment);
-  initProgram(1, kSnowFragment);
-  initProgram(2, kRainFragment);
-  initProgram(3, kCloudFragment);
-  initProgram(4, kStarsFragment);
+  initProgram(EffectType::Sun, kSunFragment);
+  initProgram(EffectType::Snow, kSnowFragment);
+  initProgram(EffectType::Rain, kRainFragment);
+  initProgram(EffectType::Cloud, kCloudFragment);
+  initProgram(EffectType::Stars, kStarsFragment);
 }
 
 void EffectProgram::destroy() {
@@ -513,10 +534,10 @@ void EffectProgram::abandon() noexcept {
   }
 }
 
-void EffectProgram::initProgram(std::size_t index, const char* fragSource) {
+void EffectProgram::initProgram(EffectType type, const char* fragSource) {
   std::string fullFrag = std::string(kCommonFragment) + fragSource;
 
-  auto& pd = m_programs[index];
+  auto& pd = m_programs[programIndex(type).value()];
   pd.program.create(kVertexShader, fullFrag.c_str());
 
   auto id = pd.program.id();
@@ -548,12 +569,12 @@ void EffectProgram::draw(
   // Fog reuses the Cloud shader with alternative=1
   const bool isFog = style.type == EffectType::Fog;
   const auto effectType = isFog ? EffectType::Cloud : style.type;
-  auto idx = static_cast<std::size_t>(effectType) - 1;
-  if (idx >= kEffectCount || !m_programs[idx].program.isValid()) {
+  const auto idx = programIndex(effectType);
+  if (!idx.has_value() || !m_programs[*idx].program.isValid()) {
     return;
   }
 
-  const auto& pd = m_programs[idx];
+  const auto& pd = m_programs[*idx];
 
   static constexpr float kQuad[] = {
       0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 1.0F, 0.0F, 1.0F, 1.0F, 0.0F, 1.0F, 1.0F,
