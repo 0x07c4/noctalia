@@ -138,6 +138,12 @@ const noctalia::bar::WidgetDefinition<TaskbarWidgetOptions>& taskbarWidgetDefini
                               ),
                       }
                   ),
+                  field<&Options::showRunning>(
+                      {
+                          .key = "show_running",
+                          .presentation = presentation("taskbar.windows", matches("group_by_workspace", {"false"})),
+                      }
+                  ),
                   field<&Options::onlyActiveWorkspace>(
                       {
                           .key = "only_active_workspace",
