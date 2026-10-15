@@ -264,6 +264,7 @@ _luau_sources = files(
   'third_party/luau/VM/src/ltm.cpp',
   'third_party/luau/VM/src/ludata.cpp',
   'third_party/luau/VM/src/lutf8lib.cpp',
+  'third_party/luau/VM/src/lvector.cpp',
   'third_party/luau/VM/src/lveclib.cpp',
   'third_party/luau/VM/src/lvmexecute.cpp',
   'third_party/luau/VM/src/lvmload.cpp',
