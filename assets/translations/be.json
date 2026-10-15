@@ -28,6 +28,7 @@
   },
   "bar": {
     "annotate": {
+      "capture-new-region": "Захапіць новы рэгіён (скасоўвае бягучае рэдагаванне)",
       "color-black": "Чорны",
       "color-blue": "Сіні",
       "color-green": "Зялёны",
@@ -36,6 +37,7 @@
       "color-red": "Чырвоны",
       "color-white": "Белы",
       "color-yellow": "Жоўты",
+      "done": "Прымяніць налады скрыншота (Enter)",
       "redo": "Узнавіць (Ctrl+Shift+Z)",
       "size-large": "Вялікі",
       "size-medium": "Сярэдні",

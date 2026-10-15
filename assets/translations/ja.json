@@ -226,7 +226,8 @@
       "auto": "自動",
       "custom": "独自設定",
       "inherit": "継承",
-      "off": "オフ"
+      "off": "オフ",
+      "on": "オン"
     }
   },
   "control-center": {
@@ -888,6 +889,7 @@
       "lockscreen-widgets-editor-blocked-locked": "ロック画面ウィジェットを編集する前にセッションのロックを解除してください。",
       "lockscreen-widgets-editor-enabled": "ロック画面ウィジェット編集が有効です。開いているウィンドウで編集画面が隠れないよう、空のワークスペースに切り替えてください。",
       "mpris-disabled": "MPRISは無効です",
+      "network-connect-failed-permission": "ネットワーク接続を変更する権限がありません。セキュリティ設定でpolkitエージェントを有効化するか、polkitのルールでNetworkManagerの操作を許可してください。",
       "polkit-agent": "Polkitエージェント",
       "polkit-no-session": "Polkitエージェントにはlogind、elogind、またはXDG_SESSION_IDが必要です。seatdのみの環境では、画面上の認証要求を受け付けることができません。グリーターの同期にはターミナルからpkexecを使用するか、セッション内認証を利用するためにelogindをインストールしてください。",
       "screen-time-reset": "スクリーンタイム",
@@ -997,8 +999,14 @@
     }
   },
   "settings": {
+    "actions": {
+      "confirm-reset": "リセットを確定",
+      "reset": "リセット"
+    },
     "badges": {
-      "monitor": "画面"
+      "community": "コミュニティ",
+      "monitor": "画面",
+      "official": "公式"
     },
     "calendar-accounts": {
       "add-title": "カレンダーアカウントを追加",
@@ -1098,10 +1106,13 @@
           "widget-spacing-description": "このグループ内のウィジェット間隔（ピクセル）。「自動」ではバーのウィジェット間隔を継承"
         },
         "instance": {
+          "delete": "削除",
           "delete-confirm-desc": "この名前付きウィジェットをすべてのバーから削除し、設定も破棄します。",
+          "delete-confirm-title": "「{name}」を削除しますか？",
           "id-description": "英字、数字、アンダースコア、ハイフンのみ使用できます。スペースは使用できず、一意である必要があります。"
         },
         "raw": {
+          "delete": "削除",
           "description": "このウィジェット設定に含まれる未対応のキーは保持されます。"
         },
         "settings": {
@@ -1176,7 +1187,9 @@
         "audio": "音声",
         "authentication": "認証",
         "built-in": "内蔵",
+        "calendar-accounts": "アカウント",
         "clipboard": "クリップボード",
+        "community": "コミュニティ",
         "control-center": "コントロールセンター",
         "home": "ホーム",
         "hot-corners": "ホットコーナー",
@@ -1189,12 +1202,17 @@
         "monitor-polling": "更新間隔",
         "monitor-thresholds": "強調表示のしきい値",
         "monitors": "画面",
+        "motion": "モーション",
         "network": "ネットワーク",
         "notifications": "通知",
         "osd": "OSD",
         "power": "電源",
+        "privacy": "プライバシー",
         "screen-corners": "画面の四隅",
         "screen-time": "スクリーンタイム",
+        "screenshot": "スクリーンショット",
+        "screenshot-output": "出力",
+        "security": "セキュリティ",
         "session-panel": "セッションパネル",
         "system": "システム",
         "theme": "テーマ",
@@ -1208,7 +1226,9 @@
         "accessibility": "アクセシビリティ",
         "appearance": "外観",
         "bar": "バー",
+        "calendar": "カレンダー",
         "control-center": "コントロールセンター",
+        "desktop": "デスクトップ",
         "dock": "ドック",
         "launcher": "ランチャー",
         "location": "位置情報",
@@ -1216,6 +1236,7 @@
         "osd": "OSD",
         "plugins": "プラグイン",
         "power": "電源",
+        "security": "セキュリティ",
         "system": "システム",
         "wallpaper": "壁紙"
       }
@@ -1482,8 +1503,13 @@
     },
     "schema": {
       "appearance": {
+        "animation-speed": {
+          "description": "すべてのアニメーションの速度倍率",
+          "label": "アニメーション速度"
+        },
         "animations": {
-          "description": "UIアニメーションを有効・無効にする"
+          "description": "UIアニメーションを有効・無効にする",
+          "label": "アニメーション"
         },
         "app-icon-color": {
           "description": "アプリアイコンを着色するときに使用する配色の色",
@@ -1523,6 +1549,9 @@
         },
         "input-borders": {
           "description": "シェル全体のテキスト入力欄やその他の入力項目に枠線を表示"
+        },
+        "language": {
+          "label": "言語"
         },
         "palette-source": {
           "description": "配色の取得元"
@@ -1762,6 +1791,7 @@
           "label": "角の大きさ"
         },
         "widgets": {
+          "description": "デスクトップにウィジェットを表示する",
           "label": "デスクトップウィジェット"
         },
         "widgets-editor": {
@@ -1965,7 +1995,8 @@
             "label": "Wi-Fi無効時"
           },
           "wifi-enabled": {
-            "description": "Wi-Fi有効時に実行するコマンド"
+            "description": "Wi-Fi有効時に実行するコマンド",
+            "label": "Wi-Fi有効時"
           }
         }
       },
@@ -1979,19 +2010,32 @@
       },
       "keybinds": {
         "cancel": {
-          "description": "ポップアップやパネルを閉じるか、現在の操作を中止"
+          "description": "ポップアップやパネルを閉じるか、現在の操作を中止",
+          "label": "キャンセル"
+        },
+        "copy": {
+          "label": "コピー"
         },
         "delete": {
           "description": "選択した項目を削除",
           "label": "削除"
         },
+        "down": {
+          "label": "下へ移動"
+        },
         "left": {
           "description": "フォーカスまたは選択を左へ移動",
           "label": "左へ移動"
         },
+        "right": {
+          "label": "右へ移動"
+        },
         "tab-next": {
           "description": "フォーカスを次の項目へ移動",
           "label": "次へフォーカス"
+        },
+        "up": {
+          "label": "上へ移動"
         }
       },
       "lockscreen": {
@@ -2580,11 +2624,17 @@
         "corner-top-left": {
           "label": "左上の角丸半径"
         },
+        "enabled": {
+          "label": "有効"
+        },
         "ends-margin": {
           "label": "両端の余白"
         },
         "reserve-space": {
           "label": "予約領域"
+        },
+        "shadow-direction": {
+          "label": "影の方向"
         }
       },
       "shell": {
@@ -2629,7 +2679,8 @@
           "description": "個別設定のないシェルUIで使用する既定の日付形式"
         },
         "external-ip": {
-          "description": "接続のパブリックWAN IPアドレスを（api.noctalia.dev経由で）取得し、コントロールセンターのネットワークタブに表示します"
+          "description": "接続のパブリックWAN IPアドレスを（api.noctalia.dev経由で）取得し、コントロールセンターのネットワークタブに表示します",
+          "label": "WAN IPを表示"
         },
         "greeter-sync-auto": {
           "description": "壁紙、配色、テーマモード、またはシェルフォントの変更時に、グリーターを自動同期します。認証は引き続きシステムの方針に従います。この設定でパスワードなしの同期が有効になることはありません。"
@@ -2651,7 +2702,8 @@
           "label": "入力でランチャーを開く"
         },
         "offline-mode": {
-          "description": "すべての送信ネットワーク通信をブロック"
+          "description": "すべての送信ネットワーク通信をブロック",
+          "label": "オフラインモード"
         },
         "osd-background-opacity": {
           "description": "OSDポップアップの背景不透明度",
@@ -2778,13 +2830,16 @@
           "description": "スクリーンショットを撮るたびに注釈エディターを開きます。「完了」を押すと、保存、クリップボード、パイプの設定が適用されます"
         },
         "screenshot-close-on-copy": {
-          "description": "エディターからのコピーに成功したら閉じる。エディターを直接開いた場合も対象"
+          "description": "エディターからのコピーに成功したら閉じる。エディターを直接開いた場合も対象",
+          "label": "コピー後にエディターを閉じる"
         },
         "screenshot-close-on-save": {
-          "description": "エディターからの保存に成功したら閉じる。エディターを直接開いた場合も対象"
+          "description": "エディターからの保存に成功したら閉じる。エディターを直接開いた場合も対象",
+          "label": "保存後にエディターを閉じる"
         },
         "screenshot-confirm-region": {
-          "description": "範囲を描画した後、EnterまたはSpaceで確定するまでオーバーレイを開いたままにする"
+          "description": "範囲を描画した後、EnterまたはSpaceで確定するまでオーバーレイを開いたままにする",
+          "label": "範囲を確認する"
         },
         "screenshot-copy-to-clipboard": {
           "description": "撮影したPNGをクリップボードにコピー",
@@ -2805,14 +2860,16 @@
           "description": "PNGを標準入力で渡し、/bin/sh -lcとして実行するコマンド。注釈ツールやアップロードツールに使用します（例：swappy -f -、satty -f -）"
         },
         "screenshot-remember-last-region": {
-          "description": "次回の範囲スクリーンショットで、前回の範囲をあらかじめ選択（キャンセルした場合も含む）"
+          "description": "次回の範囲スクリーンショットで、前回の範囲をあらかじめ選択（キャンセルした場合も含む）",
+          "label": "前回の範囲を記憶する"
         },
         "screenshot-save-to-file": {
           "description": "スクリーンショットをPNGファイルとして出力先フォルダーに保存",
           "label": "ファイルに保存"
         },
         "screenshot-show-cursor": {
-          "description": "スクリーンショットにマウスポインターを含める"
+          "description": "スクリーンショットにマウスポインターを含める",
+          "label": "マウスポインターを含める"
         },
         "show-location": {
           "description": "天気予報に地名を表示する",
@@ -3285,6 +3342,7 @@
             "description": "対象画面で隣のワークスペースへ切替（両端で停止）"
           }
         },
+        "disabled": "無効",
         "run-command": "コマンドを実行…"
       },
       "gestures": {
@@ -3569,8 +3627,10 @@
         "launcher": "為替レートを取得できません。",
         "location": "天気や場所の検索は機能しません。",
         "plugin-store": "オンラインのプラグインカタログとダウンロード要求は利用できません。",
-        "plugins": "プラグインのHTTP通信は利用できません。Git配布元は引き続き更新できます。"
-      }
+        "plugins": "プラグインのHTTP通信は利用できません。Git配布元は引き続き更新できます。",
+        "title": "オフラインモード"
+      },
+      "reset-page-confirm": "リセットを確定"
     }
   },
   "setup-wizard": {

@@ -631,8 +631,8 @@
         "show-label": "Show Label",
         "show-login-button": "Login Button",
         "show-media": "Media",
-        "show-password-reveal": "Password Reveal",
         "show-password-hint": "Password Hint",
+        "show-password-reveal": "Password Reveal",
         "show-seconds": "Second Hand",
         "show-session-buttons": "Session Buttons",
         "show-unlock-hint": "Unlock Hint",
@@ -1685,6 +1685,21 @@
         }
       }
     },
+    "palette-inspector": {
+      "copied": "Copied {value}",
+      "copy-failed": "Could not copy the color to the clipboard.",
+      "copy-hex": "Copy hex value",
+      "copy-name": "Copy color name",
+      "description": "Template colors in {mode} mode.",
+      "empty": "No matching colors.",
+      "filter-all": "All Colors",
+      "filter-palette": "Palette",
+      "filter-terminal": "Terminal",
+      "missing": "Unavailable",
+      "search-placeholder": "Search color names or hex values...",
+      "terminal-number": "{number} · ANSI {index}",
+      "title": "Palette Inspector"
+    },
     "plugins": {
       "browse-store": "Browse Plugins",
       "panels": {
@@ -1795,21 +1810,6 @@
         "source-all": "All sources",
         "title": "Plugin Store"
       }
-    },
-    "palette-inspector": {
-      "copied": "Copied {value}",
-      "copy-failed": "Could not copy the color to the clipboard.",
-      "copy-name": "Copy color name",
-      "copy-hex": "Copy hex value",
-      "description": "Template colors in {mode} mode.",
-      "empty": "No matching colors.",
-      "filter-all": "All Colors",
-      "filter-palette": "Palette",
-      "filter-terminal": "Terminal",
-      "missing": "Unavailable",
-      "search-placeholder": "Search color names or hex values...",
-      "terminal-number": "{number} · ANSI {index}",
-      "title": "Palette Inspector"
     },
     "schema": {
       "accessibility": {

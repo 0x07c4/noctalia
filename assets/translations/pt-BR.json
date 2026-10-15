@@ -275,6 +275,7 @@
         "connected": "Conectado",
         "paired": "Emparelhado"
       },
+      "trust-and-allow": "Confiar e permitir",
       "unavailable": "Serviço de Bluetooth indisponível",
       "unknown-device": "Dispositivo desconhecido",
       "visible": "Detectável por dispositivos próximos"
@@ -726,6 +727,7 @@
         "settings": "Configurações"
       },
       "navigation": {
+        "all": "Todos",
         "all-apps": "Todos Apps",
         "categories": "Categorias",
         "pinned": "Fixado",
@@ -1356,7 +1358,7 @@
         "control-center": "Central de Controle",
         "dead-zone": "Zona Morta",
         "directories": "Diretórios",
-        "display": "Tela",
+        "display": "Mostrar",
         "effects": "Efeitos",
         "filtering": "Filtragem",
         "focus-styling": "Estilo de Foco",
@@ -1581,11 +1583,25 @@
         "top-left": "Topo à Esquerda",
         "top-right": "Topo à direita"
       },
+      "screenshot": {
+        "region-modifier": {
+          "alt": "Alt",
+          "ctrl": "Ctrl",
+          "none": "Nenhuma",
+          "shift": "Shift",
+          "super": "Super"
+        }
+      },
       "shell": {
         "launcher-default-view": {
+          "all": "Todas",
           "categories": "Categorias",
           "pinned": "Fixado",
           "recent": "Recente"
+        },
+        "launcher-layout": {
+          "full": "Completo",
+          "simple": "Simples"
         },
         "launcher-search-position": {
           "bottom": "Inferior",
@@ -2615,7 +2631,7 @@
           "label": "Colagem Automática"
         },
         "launcher-categories": {
-          "description": "Exibir filtros de categoria no launcher; revele com F6 e depois alterne com F6 e Shift+F6.",
+          "description": "Mostrar Todos, Recentemente Usados e as pastilhas de categoria sob o campo de busca",
           "label": "Exibir Categorias"
         },
         "launcher-category-icons-only": {
@@ -2659,15 +2675,19 @@
           "label": "Janelas na Busca Global"
         },
         "launcher-grid": {
-          "description": "Exibe uma grade de ícones de aplicativos com legendas abaixo deles quando os resultados forem apenas aplicativos",
-          "label": "Visão em Grade de Apps"
+          "description": "Exibir previsão de resultados e de provedores como grade de ícones ao invés de linhas",
+          "label": "Visão em Grade"
         },
         "launcher-ignored-panels": {
           "description": "Painéis que o provedor de painéis nunca lista (ex. caixas de diálogo, o assistente de configuração)",
           "label": "Painéis Ignorados"
         },
+        "launcher-layout": {
+          "description": "A versão “Completa” inclui abas de visualização e uma barra de ferramentas com seu perfil e atalhos; a versão “Simples” exibe um campo de pesquisa, pastilhas de categoria opcionais e resultados",
+          "label": "Layout"
+        },
         "launcher-pinned-apps": {
-          "description": "IDs de entradas na área de trabalho dos aplicativos fixados no iniciador; eles aparecem em primeiro lugar quando o iniciador é aberto",
+          "description": "IDs de entradas na área de trabalho mostrados em ordem manual na Visão Fixada",
           "label": "Apps Fixados"
         },
         "launcher-prefix-calculator": {
@@ -2700,7 +2720,7 @@
         },
         "launcher-reset-usage": {
           "button": "Redefinir",
-          "description": "Apagar contagem de lançados e histórico de recentemente usados utilizados para ordenação do launcher",
+          "description": "Limpar histórico do launcher usado por Recente e Baseado em Uso",
           "label": "Redefinir Dados de Uso"
         },
         "launcher-search-position": {
@@ -2724,7 +2744,7 @@
           "label": "Mostrar Botão Configurações"
         },
         "launcher-sort-by-usage": {
-          "description": "Colocar os aplicativos usados com mais frequência no topo e exibir um filtro da categoria \"Usados recentemente\"",
+          "description": "Priorizar resultados frenquentemente usados na navegação normal e busca",
           "label": "Organizar por Uso"
         },
         "launcher-track-usage": {
@@ -3422,6 +3442,10 @@
         "screenshot-pipe-to-command": {
           "description": "Envia o PNG capturado para um comando do shell em stdin",
           "label": "Pipe para Comando"
+        },
+        "screenshot-region-modifier": {
+          "description": "Modificador para mover ou redimensionar uma região selecionada: arraste com o botão esquerdo para mover, arraste com o botão direito para redimensionar a partir dos terços externos (os cantos redimensionam em ambos os eixos). Nenhuma opção (padrão) mantém o comportamento padrão de arrastar para ajustar",
+          "label": "Modificador de Movimento/Redimensionamento"
         },
         "screenshot-remember-last-region": {
           "description": "Pré-selecionar a última região(incluindo depois de cancelar) na próxima captura de tela por região",
