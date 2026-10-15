@@ -22,65 +22,54 @@ namespace compositors::umbriel {
 
   UmbrielAudioProvider::UmbrielAudioProvider(UmbrielRuntime& runtime, SnapshotSource source)
       : m_runtime(runtime), m_source(std::move(source)) {}
-  UmbrielAudioProvider::~UmbrielAudioProvider() { disconnect(false); }
+  UmbrielAudioProvider::~UmbrielAudioProvider() { disconnect(); }
 
   void UmbrielAudioProvider::setEnabled(bool enabled) {
     if (m_enabled == enabled) {
       return;
     }
     m_enabled = enabled;
-    disconnect(false);
-    m_nextConnectAt = {};
+    disconnect();
+    m_due = m_lastSentAt + kMinInterval;
     m_backoff = std::chrono::milliseconds(100);
-    notifyChanged();
   }
 
-  void UmbrielAudioProvider::notifyChanged() { m_nextCheckAt = Clock::now(); }
+  void UmbrielAudioProvider::notifyChanged() {
+    m_dirty = true;
+    if (m_fd >= 0 && !m_awaitingReply && m_output.empty()) {
+      m_due = std::min(m_due, m_lastSentAt + kMinInterval);
+    }
+  }
 
-  void UmbrielAudioProvider::disconnect(bool retry) {
+  void UmbrielAudioProvider::disconnect() {
     if (m_fd >= 0) {
       close(m_fd);
     }
     m_fd = -1;
-    m_connecting = false;
     m_awaitingReply = false;
     m_output.clear();
-    m_input.clear();
     m_written = 0;
-    m_lastSent.reset();
-    if (retry) {
-      m_nextConnectAt = Clock::now() + m_backoff;
-      m_backoff = std::min(m_backoff * 2, std::chrono::milliseconds(2000));
-    }
+    m_input.clear();
+    m_due = Clock::now() + m_backoff;
+    m_backoff = std::min(m_backoff * 2, std::chrono::milliseconds(2000));
   }
 
-  void UmbrielAudioProvider::connectSocket() {
+  bool UmbrielAudioProvider::connectSocket() {
     const auto& path = m_runtime.socketPath();
     sockaddr_un address{};
     address.sun_family = AF_UNIX;
     if (path.empty() || path.size() >= sizeof(address.sun_path)) {
-      disconnect(true);
-      return;
+      return false;
     }
     std::memcpy(address.sun_path, path.c_str(), path.size() + 1);
     m_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
-    if (m_fd < 0) {
-      disconnect(true);
-      return;
-    }
-    if (connect(m_fd, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) < 0) {
-      if (errno != EINPROGRESS) {
-        disconnect(true);
-        return;
-      }
-      m_connecting = true;
-    }
-    m_deadline = Clock::now() + kReplyTimeout;
+    // Linux AF_UNIX connect completes immediately or fails (including EAGAIN).
+    return m_fd >= 0 && connect(m_fd, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) == 0;
   }
 
   void UmbrielAudioProvider::doAddPollFds(std::vector<pollfd>& fds) {
     if (m_fd >= 0) {
-      const short events = m_connecting || !m_output.empty() ? POLLIN | POLLOUT : POLLIN;
+      const short events = m_output.empty() ? POLLIN : POLLIN | POLLOUT;
       fds.push_back({m_fd, events, 0});
     }
   }
@@ -89,12 +78,8 @@ namespace compositors::umbriel {
     if (!m_enabled) {
       return -1;
     }
-    auto next = m_nextCheckAt;
-    if (m_connecting || m_awaitingReply || !m_output.empty()) {
-      next = std::min(next, m_deadline);
-    }
     return static_cast<int>(
-        std::max(std::chrono::milliseconds(0), std::chrono::ceil<std::chrono::milliseconds>(next - Clock::now()))
+        std::max(std::chrono::milliseconds(0), std::chrono::ceil<std::chrono::milliseconds>(m_due - Clock::now()))
             .count()
     );
   }
@@ -120,7 +105,7 @@ namespace compositors::umbriel {
     m_input.clear();
     m_awaitingReply = false;
     m_backoff = std::chrono::milliseconds(100);
-    notifyChanged();
+    m_due = m_lastSentAt + (m_dirty ? kMinInterval : kHeartbeat);
     return true;
   }
 
@@ -147,62 +132,45 @@ namespace compositors::umbriel {
       return;
     }
     const auto now = Clock::now();
-    if (now >= m_nextCheckAt) {
-      m_nextCheckAt = now + kHeartbeat;
+    const short events = m_fd >= 0 && startIdx < fds.size() && fds[startIdx].fd == m_fd ? fds[startIdx].revents : 0;
+    if ((events & (POLLERR | POLLHUP | POLLNVAL)) != 0
+        || ((events & POLLIN) != 0 && !readReply())
+        || ((m_awaitingReply || !m_output.empty()) && now >= m_due)) {
+      disconnect();
+      return;
+    }
+    if (m_awaitingReply) {
+      return;
+    }
+    if (!m_output.empty()) {
+      if ((events & POLLOUT) == 0) {
+        return;
+      }
+      if (m_written != 0 || !m_dirty) {
+        if (!writeSnapshot()) {
+          disconnect();
+        }
+        return;
+      }
+    } else if (now < m_due) {
+      return;
+    }
+    if (m_fd < 0 && !connectSocket()) {
+      disconnect();
+      return;
     }
     const auto bands = m_source();
     if (!std::ranges::all_of(bands, [](float value) { return std::isfinite(value) && value >= 0 && value <= 1; })) {
-      disconnect(false);
-      return;
-    }
-    if (m_fd >= 0 && startIdx < fds.size() && fds[startIdx].fd == m_fd) {
-      const short events = fds[startIdx].revents;
-      if ((events & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
-        disconnect(true);
-        return;
-      }
-      if (m_connecting && (events & POLLOUT) != 0) {
-        int error = 0;
-        socklen_t size = sizeof(error);
-        if (getsockopt(m_fd, SOL_SOCKET, SO_ERROR, &error, &size) < 0 || error != 0) {
-          disconnect(true);
-          return;
-        }
-        m_connecting = false;
-      }
-      if ((events & POLLIN) != 0 && !readReply()) {
-        disconnect(true);
-        return;
-      }
-    }
-    if ((m_connecting || m_awaitingReply || !m_output.empty()) && now >= m_deadline) {
-      disconnect(true);
-      return;
-    }
-    if (m_fd < 0 && now >= m_nextConnectAt) {
-      connectSocket();
-    }
-    if (m_fd < 0 || m_connecting || m_awaitingReply) {
+      disconnect();
       return;
     }
     if (m_output.empty()) {
-      const auto nextSend = m_lastSentAt + (m_lastSent == bands ? kHeartbeat : kMinInterval);
-      if (m_lastSentAt.time_since_epoch().count() != 0 && now < nextSend) {
-        m_nextCheckAt = std::min(m_nextCheckAt, nextSend);
-        return;
-      }
-      m_deadline = now + kReplyTimeout;
+      m_due = now + kReplyTimeout;
     }
-    if (m_written == 0 && (m_output.empty() || m_lastSent != bands)) {
-      m_output = nlohmann::json{{"cmd", "effect-audio"}, {"version", 2}, {"bands", bands}}.dump() + '\n';
-      if (m_output.size() > kMaxPacket) {
-        disconnect(true);
-        return;
-      }
-      m_lastSent = bands;
-    }
-    if (!writeSnapshot()) {
-      disconnect(true);
+    m_output = nlohmann::json{{"cmd", "effect-audio"}, {"version", 2}, {"bands", bands}}.dump() + '\n';
+    m_dirty = false;
+    if (m_output.size() > kMaxPacket || !writeSnapshot()) {
+      disconnect();
     }
   }
 } // namespace compositors::umbriel

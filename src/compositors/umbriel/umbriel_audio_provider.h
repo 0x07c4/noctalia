@@ -5,7 +5,6 @@
 #include <array>
 #include <chrono>
 #include <functional>
-#include <optional>
 #include <string>
 
 namespace compositors::umbriel {
@@ -31,24 +30,21 @@ namespace compositors::umbriel {
 
   private:
     using Clock = std::chrono::steady_clock;
-    void disconnect(bool retry);
-    void connectSocket();
+    void disconnect();
+    bool connectSocket();
     bool readReply();
     bool writeSnapshot();
 
     UmbrielRuntime& m_runtime;
     SnapshotSource m_source;
     bool m_enabled = false;
-    bool m_connecting = false;
+    bool m_dirty = true;
     bool m_awaitingReply = false;
     int m_fd = -1;
     std::string m_output;
     std::size_t m_written = 0;
     std::string m_input;
-    std::optional<Bands> m_lastSent;
-    Clock::time_point m_nextCheckAt;
-    Clock::time_point m_nextConnectAt;
-    Clock::time_point m_deadline;
+    Clock::time_point m_due;
     Clock::time_point m_lastSentAt;
     std::chrono::milliseconds m_backoff{100};
   };

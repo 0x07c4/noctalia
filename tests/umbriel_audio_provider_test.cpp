@@ -56,8 +56,11 @@ namespace {
     void step(UmbrielAudioProvider& provider) {
       std::vector<pollfd> fds;
       const auto index = provider.addPollFds(fds);
-      TEST_CHECK(poll(fds.data(), fds.size(), 1) >= 0);
-      provider.dispatch(fds, index);
+      const auto ready = poll(fds.data(), fds.size(), 1);
+      TEST_CHECK(ready >= 0);
+      if (ready > 0 || provider.pollTimeoutMs() == 0) {
+        provider.dispatch(fds, index);
+      }
       if (m_client < 0) {
         m_client = accept4(m_fd, nullptr, nullptr, SOCK_NONBLOCK | SOCK_CLOEXEC);
       }
@@ -128,8 +131,9 @@ int main(int argc, char** argv) {
     provider.setEnabled(true);
     const auto start = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start < 10s) {
-      if (std::chrono::steady_clock::now() - start > 7s) {
+      if (std::chrono::steady_clock::now() - start > 7s && bands.back() > 0) {
         bands.fill(0);
+        provider.notifyChanged();
       }
       std::vector<pollfd> fds;
       const auto index = provider.addPollFds(fds);
@@ -193,7 +197,7 @@ int main(int argc, char** argv) {
 
   source[0] = std::numeric_limits<float>::quiet_NaN();
   provider.notifyChanged();
-  server.step(provider);
+  server.noPacket(provider, 25ms);
   TEST_CHECK(server.clientClosed());
   provider.setEnabled(false);
   TEST_CHECK(provider.pollTimeoutMs() == -1);
