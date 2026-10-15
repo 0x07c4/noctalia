@@ -428,6 +428,7 @@ std::unique_ptr<Widget> WidgetFactory::create(
         barName, outputName, context.verticalBar, enableScroll
     );
     widget->setContentScale(contentScale);
+    widget->setBarHoverTint(pluginEntry->entry->widgetHoverHighlight);
     return widget;
   }
 
