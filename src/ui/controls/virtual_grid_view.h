@@ -129,7 +129,8 @@ public:
   void setScale(float scale);
 
   void scrollToIndex(std::size_t index);
-  void setSelectedIndex(std::optional<std::size_t> index);
+  // Pointer selection can keep the viewport stable until release.
+  void setSelectedIndex(std::optional<std::size_t> index, bool scrollToSelection = true);
   [[nodiscard]] std::optional<std::size_t> selectedIndex() const noexcept { return m_selectedIndex; }
   // Surface-local anchor point for item `index` (cell center). False when layout
   // metrics are unavailable or the index is out of range.

@@ -204,9 +204,12 @@ void VirtualGridView::scrollToIndex(std::size_t index) {
   markLayoutDirty();
 }
 
-void VirtualGridView::setSelectedIndex(std::optional<std::size_t> index) {
+void VirtualGridView::setSelectedIndex(std::optional<std::size_t> index, bool scrollToSelection) {
+  if (!scrollToSelection) {
+    m_pendingScrollToIndex = false;
+  }
   if (m_selectedIndex == index) {
-    if (m_selectedIndex.has_value()) {
+    if (scrollToSelection && m_selectedIndex.has_value()) {
       m_pendingScrollToIndex = true;
       m_pendingScrollIndex = *m_selectedIndex;
       markLayoutDirty();
@@ -214,7 +217,7 @@ void VirtualGridView::setSelectedIndex(std::optional<std::size_t> index) {
     return;
   }
   m_selectedIndex = index;
-  if (m_selectedIndex.has_value()) {
+  if (scrollToSelection && m_selectedIndex.has_value()) {
     m_pendingScrollToIndex = true;
     m_pendingScrollIndex = *m_selectedIndex;
   } else {
@@ -602,7 +605,7 @@ void VirtualGridView::onPointerPress(float localX, float localY) {
   if (!idx.has_value()) {
     return;
   }
-  setSelectedIndex(idx);
+  setSelectedIndex(idx, false);
   if (m_adapter == nullptr) {
     return;
   }
@@ -645,7 +648,7 @@ void VirtualGridView::onSecondaryPointerPress(float localX, float localY) {
   if (!idx.has_value()) {
     return;
   }
-  setSelectedIndex(idx);
+  setSelectedIndex(idx, false);
   if (m_adapter != nullptr) {
     float wx = 0.0F;
     float wy = 0.0F;
