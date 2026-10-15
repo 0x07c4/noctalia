@@ -42,8 +42,6 @@ public:
   [[nodiscard]] bool smoothing() const noexcept { return m_smoothing; }
 
   [[nodiscard]] const std::vector<float>& values(ListenerId id) const noexcept;
-  enum class CaptureHealth { Unavailable, Active, Silent };
-  [[nodiscard]] CaptureHealth captureHealth() const;
   [[nodiscard]] bool idle() const noexcept { return m_idle; }
 
   [[nodiscard]] int pollTimeoutMs() const;
@@ -103,7 +101,6 @@ private:
 
   std::unique_ptr<Stream> m_stream;
   std::chrono::steady_clock::time_point m_nextFrameAt;
-  std::chrono::steady_clock::time_point m_nextStreamRetryAt;
 
   static constexpr int kFftSize = 4096;
   std::vector<float> m_ringBuffer;
@@ -112,8 +109,6 @@ private:
   int m_sampleRate = 48000;
   int m_idleFrames = 0;
   bool m_samplesReceived = false;
-  std::chrono::steady_clock::time_point m_lastBufferAt;
-  std::chrono::steady_clock::time_point m_lastMeasurementAt;
 
   // Env-gated diagnostics (NOCTALIA_SPECTRUM_DEBUG=1): ~1 line/s capture + analysis summaries.
   void noteProcessDiag(int frameCount, int channelCount, float peak);

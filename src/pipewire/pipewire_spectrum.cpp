@@ -130,14 +130,6 @@ public:
 
   bool start();
   void destroy();
-  [[nodiscard]] bool failed() const { return m_stream == nullptr || m_state == PW_STREAM_STATE_ERROR; }
-  [[nodiscard]] bool idleReady() const {
-    return !m_formatRejected && (m_state == PW_STREAM_STATE_PAUSED || m_state == PW_STREAM_STATE_STREAMING);
-  }
-  [[nodiscard]] bool ready() const { return m_formatReady && idleReady(); }
-  [[nodiscard]] std::uint32_t nodeId() const {
-    return m_stream != nullptr ? pw_stream_get_node_id(m_stream) : PW_ID_ANY;
-  }
 
 private:
   static const pw_stream_events kEvents;
@@ -157,8 +149,6 @@ private:
   spa_hook m_listener{};
   spa_audio_info_raw m_format = SPA_AUDIO_INFO_RAW_INIT(.format = SPA_AUDIO_FORMAT_UNKNOWN);
   bool m_formatReady = false;
-  bool m_formatRejected = false;
-  pw_stream_state m_state = PW_STREAM_STATE_UNCONNECTED;
 };
 
 const pw_stream_events PipeWireSpectrum::Stream::kEvents = [] {
@@ -234,15 +224,8 @@ void PipeWireSpectrum::Stream::onParamChanged(void* data, std::uint32_t id, cons
 }
 
 void PipeWireSpectrum::Stream::onStateChanged(
-    void* data, pw_stream_state oldState, pw_stream_state state, const char* error
+    void* /*data*/, pw_stream_state oldState, pw_stream_state state, const char* error
 ) {
-  auto* self = static_cast<Stream*>(data);
-  self->m_state = state;
-  if (state != PW_STREAM_STATE_STREAMING) {
-    self->m_spectrum.m_lastBufferAt = {};
-    self->m_spectrum.m_lastMeasurementAt = {};
-    self->m_spectrum.clearValues(true);
-  }
   if (state == PW_STREAM_STATE_ERROR) {
     kLog.warn("spectrum stream error: {}", error != nullptr ? error : "unknown");
     return;
@@ -258,18 +241,10 @@ void PipeWireSpectrum::Stream::onDestroy(void* data) {
 }
 
 void PipeWireSpectrum::Stream::handleParamChanged(std::uint32_t id, const spa_pod* param) {
-  if (id != SPA_PARAM_Format) {
-    return;
-  }
-  m_formatReady = false;
-  m_spectrum.m_lastBufferAt = {};
-  m_spectrum.m_lastMeasurementAt = {};
-  m_spectrum.clearValues(true);
-  if (param == nullptr) {
+  if (param == nullptr || id != SPA_PARAM_Format) {
     return;
   }
 
-  m_formatRejected = true;
   spa_audio_info info{};
   if (spa_format_parse(param, &info.media_type, &info.media_subtype) < 0) {
     return;
@@ -289,8 +264,7 @@ void PipeWireSpectrum::Stream::handleParamChanged(std::uint32_t id, const spa_po
   }
 
   m_format = raw;
-  m_formatReady = raw.channels > 0 && raw.rate > 0;
-  m_formatRejected = !m_formatReady;
+  m_formatReady = raw.channels > 0;
   if (m_formatReady) {
     kLog.debug("spectrum stream format: rate={} channels={}", raw.rate, raw.channels);
     m_spectrum.m_sampleRate = static_cast<int>(raw.rate);
@@ -350,12 +324,6 @@ void PipeWireSpectrum::Stream::handleProcess() {
     }
   }
 
-  if (!std::ranges::all_of(mono, [](float sample) { return std::isfinite(sample); })) {
-    m_spectrum.m_lastBufferAt = {};
-    m_spectrum.m_lastMeasurementAt = {};
-    return;
-  }
-  m_spectrum.m_lastBufferAt = std::chrono::steady_clock::now();
   m_spectrum.feedSamples(mono.data(), frameCount);
 
   // Skip flagging sample receipt for fully-silent batches so a paused/silent sink
@@ -430,15 +398,6 @@ void PipeWireSpectrum::setSmoothing(bool enabled) {
 }
 
 int PipeWireSpectrum::pollTimeoutMs() const {
-  if (hasListeners() && resolvedTargetNode() != nullptr && (m_stream == nullptr || m_stream->failed())) {
-    return static_cast<int>(
-        std::max(
-            std::chrono::milliseconds(0),
-            std::chrono::ceil<std::chrono::milliseconds>(m_nextStreamRetryAt - std::chrono::steady_clock::now())
-        )
-            .count()
-    );
-  }
   if (!hasListeners() || m_stream == nullptr) {
     return -1;
   }
@@ -453,12 +412,6 @@ int PipeWireSpectrum::pollTimeoutMs() const {
 }
 
 void PipeWireSpectrum::tick() {
-  if (hasListeners() && resolvedTargetNode() != nullptr && (m_stream == nullptr || m_stream->failed())) {
-    if (std::chrono::steady_clock::now() >= m_nextStreamRetryAt) {
-      rebuildStream();
-    }
-    return;
-  }
   if (!hasListeners() || m_stream == nullptr) {
     return;
   }
@@ -495,10 +448,6 @@ void PipeWireSpectrum::handleAudioStateChanged() {
 }
 
 void PipeWireSpectrum::rebuildStream() {
-  m_nextStreamRetryAt = std::chrono::steady_clock::now() + std::chrono::seconds(1);
-  m_lastBufferAt = {};
-  m_lastMeasurementAt = {};
-  clearValues(true);
   m_stream.reset();
   m_boundNodeId = 0;
   m_boundTargetObject.clear();
@@ -588,7 +537,6 @@ void PipeWireSpectrum::clearValues(bool notify) {
   m_idle = true;
   m_samplesReceived = false;
   m_ringFull = false;
-  m_ringPos = 0;
   if (notify) {
     for (ListenerId id : changedListeners) {
       emitChanged(id);
@@ -800,7 +748,6 @@ void PipeWireSpectrum::processFrame() {
   if (m_idle && !m_samplesReceived) {
     return;
   }
-  m_lastMeasurementAt = m_lastBufferAt;
   const bool hadSamples = m_samplesReceived;
 
   if (!m_samplesReceived) {
@@ -913,32 +860,4 @@ void PipeWireSpectrum::processFrame() {
   for (ListenerId id : changedListeners) {
     emitChanged(id);
   }
-}
-
-PipeWireSpectrum::CaptureHealth PipeWireSpectrum::captureHealth() const {
-  const auto* target = resolvedTargetNode();
-  if (m_stream == nullptr
-      || !m_stream->idleReady()
-      || target == nullptr
-      || !target->available
-      || target->id != m_boundNodeId
-      || target->name != m_boundTargetObject) {
-    return CaptureHealth::Unavailable;
-  }
-  // Passive links can be healthy and idle before the first raw format is delivered.
-  if (m_service.spectrumTargetIdle(m_boundNodeId, m_stream->nodeId())) {
-    return CaptureHealth::Silent;
-  }
-  const auto now = std::chrono::steady_clock::now();
-  constexpr auto freshness = std::chrono::milliseconds(200);
-  if (!m_stream->ready() || m_lastBufferAt.time_since_epoch().count() == 0 || now - m_lastBufferAt >= freshness) {
-    return CaptureHealth::Unavailable;
-  }
-  if (m_idle && !m_samplesReceived) {
-    return CaptureHealth::Silent;
-  }
-  if (m_lastMeasurementAt.time_since_epoch().count() == 0 || now - m_lastMeasurementAt >= freshness) {
-    return CaptureHealth::Unavailable;
-  }
-  return CaptureHealth::Active;
 }

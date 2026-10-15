@@ -10,12 +10,13 @@
 
 namespace compositors::umbriel {
 
-  // The source must return nullopt whenever its underlying capture is unavailable.
+  class UmbrielRuntime;
+
   class UmbrielAudioProvider final : public PollSource {
   public:
     using Bands = std::array<float, 64>;
-    using SnapshotSource = std::function<std::optional<Bands>()>;
-    explicit UmbrielAudioProvider(SnapshotSource source);
+    using SnapshotSource = std::function<Bands()>;
+    UmbrielAudioProvider(UmbrielRuntime& runtime, SnapshotSource source);
     ~UmbrielAudioProvider() override;
     UmbrielAudioProvider(const UmbrielAudioProvider&) = delete;
     UmbrielAudioProvider& operator=(const UmbrielAudioProvider&) = delete;
@@ -35,6 +36,7 @@ namespace compositors::umbriel {
     bool readReply();
     bool writeSnapshot();
 
+    UmbrielRuntime& m_runtime;
     SnapshotSource m_source;
     bool m_enabled = false;
     bool m_connecting = false;

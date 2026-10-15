@@ -1,11 +1,10 @@
 #include "compositors/umbriel/umbriel_audio_provider.h"
 
-#include "core/log.h"
+#include "compositors/umbriel/umbriel_runtime.h"
 
 #include <algorithm>
 #include <cerrno>
 #include <cmath>
-#include <cstdlib>
 #include <cstring>
 #include <nlohmann/json.hpp>
 #include <sys/socket.h>
@@ -15,14 +14,14 @@
 
 namespace compositors::umbriel {
   namespace {
-    constexpr Logger kLog{"umbriel_audio"};
     constexpr auto kHeartbeat = std::chrono::milliseconds(100);
     constexpr auto kMinInterval = std::chrono::nanoseconds(16666667);
     constexpr auto kReplyTimeout = std::chrono::milliseconds(200);
     constexpr std::size_t kMaxPacket = 4096;
   } // namespace
 
-  UmbrielAudioProvider::UmbrielAudioProvider(SnapshotSource source) : m_source(std::move(source)) {}
+  UmbrielAudioProvider::UmbrielAudioProvider(UmbrielRuntime& runtime, SnapshotSource source)
+      : m_runtime(runtime), m_source(std::move(source)) {}
   UmbrielAudioProvider::~UmbrielAudioProvider() { disconnect(false); }
 
   void UmbrielAudioProvider::setEnabled(bool enabled) {
@@ -56,15 +55,14 @@ namespace compositors::umbriel {
   }
 
   void UmbrielAudioProvider::connectSocket() {
-    const char* path = std::getenv("UMBRIEL_SOCKET");
+    const auto& path = m_runtime.socketPath();
     sockaddr_un address{};
     address.sun_family = AF_UNIX;
-    if (path == nullptr || *path == '\0' || std::strlen(path) >= sizeof(address.sun_path)) {
-      kLog.warn("audio provider requires a valid UMBRIEL_SOCKET path");
+    if (path.empty() || path.size() >= sizeof(address.sun_path)) {
       disconnect(true);
       return;
     }
-    std::memcpy(address.sun_path, path, std::strlen(path) + 1);
+    std::memcpy(address.sun_path, path.c_str(), path.size() + 1);
     m_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (m_fd < 0) {
       disconnect(true);
@@ -153,8 +151,7 @@ namespace compositors::umbriel {
       m_nextCheckAt = now + kHeartbeat;
     }
     const auto bands = m_source();
-    if (!bands
-        || !std::ranges::all_of(*bands, [](float value) { return std::isfinite(value) && value >= 0 && value <= 1; })) {
+    if (!std::ranges::all_of(bands, [](float value) { return std::isfinite(value) && value >= 0 && value <= 1; })) {
       disconnect(false);
       return;
     }
@@ -197,7 +194,7 @@ namespace compositors::umbriel {
       m_deadline = now + kReplyTimeout;
     }
     if (m_written == 0 && (m_output.empty() || m_lastSent != bands)) {
-      m_output = nlohmann::json{{"cmd", "effect-audio"}, {"version", 2}, {"bands", *bands}}.dump() + '\n';
+      m_output = nlohmann::json{{"cmd", "effect-audio"}, {"version", 2}, {"bands", bands}}.dump() + '\n';
       if (m_output.size() > kMaxPacket) {
         disconnect(true);
         return;

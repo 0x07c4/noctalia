@@ -1,4 +1,5 @@
 #include "compositors/umbriel/umbriel_audio_provider.h"
+#include "compositors/umbriel/umbriel_runtime.h"
 #include "test_check.h"
 
 #include <chrono>
@@ -12,18 +13,25 @@
 #include <unistd.h>
 
 using compositors::umbriel::UmbrielAudioProvider;
+using compositors::umbriel::UmbrielRuntime;
 using namespace std::chrono_literals;
 
 namespace {
   class Server {
   public:
-    Server() {
+    explicit Server(bool useRuntimePath = false) {
       char directory[] = "/tmp/noctalia-audio-test-XXXXXX";
       const auto* created = mkdtemp(directory);
       TEST_CHECK(created != nullptr);
       m_directory = created;
-      m_path = m_directory + "/socket";
-      TEST_CHECK(setenv("UMBRIEL_SOCKET", m_path.c_str(), 1) == 0);
+      m_path = m_directory + "/umbriel-audio-test.sock";
+      if (useRuntimePath) {
+        TEST_CHECK(unsetenv("UMBRIEL_SOCKET") == 0);
+        TEST_CHECK(setenv("XDG_RUNTIME_DIR", m_directory.c_str(), 1) == 0);
+        TEST_CHECK(setenv("WAYLAND_DISPLAY", "audio-test", 1) == 0);
+      } else {
+        TEST_CHECK(setenv("UMBRIEL_SOCKET", m_path.c_str(), 1) == 0);
+      }
       m_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
       TEST_CHECK(m_fd >= 0);
       sockaddr_un address{};
@@ -115,7 +123,8 @@ int main(int argc, char** argv) {
     for (std::size_t i = 0; i < bands.size(); ++i) {
       bands[i] = static_cast<float>(i) / 100.0F;
     }
-    UmbrielAudioProvider provider([&bands] { return bands; });
+    UmbrielRuntime runtime;
+    UmbrielAudioProvider provider(runtime, [&bands] { return bands; });
     provider.setEnabled(true);
     const auto start = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start < 10s) {
@@ -130,18 +139,19 @@ int main(int argc, char** argv) {
     return 0;
   }
   Server server;
-  std::optional<UmbrielAudioProvider::Bands> source = UmbrielAudioProvider::Bands{};
-  source->fill(0.9F);
-  UmbrielAudioProvider provider([&source] { return source; });
+  UmbrielAudioProvider::Bands source{};
+  source.fill(0.9F);
+  UmbrielRuntime runtime;
+  UmbrielAudioProvider provider(runtime, [&source] { return source; });
   TEST_CHECK(provider.pollTimeoutMs() == -1);
   provider.setEnabled(true);
   checkBands(server.packet(provider), 0.9F);
 
   // Multiple measurements while awaiting an ACK collapse to the latest one.
-  source->fill(0.2F);
+  source.fill(0.2F);
   provider.notifyChanged();
   server.noPacket(provider, 25ms);
-  source->fill(0.7F);
+  source.fill(0.7F);
   provider.notifyChanged();
   server.reply("{\"ok\":");
   server.noPacket(provider, 25ms);
@@ -150,13 +160,13 @@ int main(int argc, char** argv) {
   server.reply();
 
   // Fast changes respect the 60 Hz ceiling, even with immediate acknowledgments.
-  source->fill(0.3F);
+  source.fill(0.3F);
   provider.notifyChanged();
   server.noPacket(provider, 8ms);
   checkBands(server.packet(provider), 0.3F);
   server.reply();
 
-  source->fill(0);
+  source.fill(0);
   provider.notifyChanged();
   checkBands(server.packet(provider), 0);
   server.reply();
@@ -164,15 +174,7 @@ int main(int argc, char** argv) {
   checkBands(server.packet(provider), 0);
   server.reply();
 
-  // Losing capture closes the connection instead of refreshing old bands.
-  source.reset();
-  provider.notifyChanged();
-  server.step(provider);
-  TEST_CHECK(server.clientClosed());
-  server.closeClient();
-  server.noPacket(provider, 110ms);
-  source = UmbrielAudioProvider::Bands{};
-  source->fill(0.5F);
+  source.fill(0.5F);
   provider.notifyChanged();
   checkBands(server.packet(provider), 0.5F);
 
@@ -180,7 +182,7 @@ int main(int argc, char** argv) {
   server.noPacket(provider, 220ms);
   TEST_CHECK(server.clientClosed());
   server.closeClient();
-  source->fill(0.6F);
+  source.fill(0.6F);
   checkBands(server.packet(provider), 0.6F);
   server.reply("{\"ok\":false,\"error\":\"locked\"}\n");
   server.step(provider);
@@ -189,7 +191,7 @@ int main(int argc, char** argv) {
   checkBands(server.packet(provider), 0.6F);
   server.reply();
 
-  (*source)[0] = std::numeric_limits<float>::quiet_NaN();
+  source[0] = std::numeric_limits<float>::quiet_NaN();
   provider.notifyChanged();
   server.step(provider);
   TEST_CHECK(server.clientClosed());
@@ -198,4 +200,13 @@ int main(int argc, char** argv) {
   std::vector<pollfd> fds;
   provider.addPollFds(fds);
   TEST_CHECK(fds.empty());
+
+  // Sessions without UMBRIEL_SOCKET use the runtime's Wayland socket path.
+  Server runtimeServer(true);
+  UmbrielRuntime fallbackRuntime;
+  UmbrielAudioProvider runtimeProvider(fallbackRuntime, [] { return UmbrielAudioProvider::Bands{}; });
+  runtimeProvider.setEnabled(true);
+  checkBands(runtimeServer.packet(runtimeProvider), 0);
+  runtimeProvider.setEnabled(false);
+  TEST_CHECK(runtimeServer.clientClosed());
 }

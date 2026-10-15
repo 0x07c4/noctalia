@@ -1386,9 +1386,6 @@ void PipeWireService::onNodeInfo(std::uint32_t id, const pw_node_info* info) {
 
   // Update name/description from props if available
   auto& nd = *it->second;
-  if ((info->change_mask & PW_NODE_CHANGE_MASK_STATE) != 0) {
-    nd.nodeIdle = info->state == PW_NODE_STATE_IDLE || info->state == PW_NODE_STATE_SUSPENDED;
-  }
   const bool wasProgramStream = isProgramStreamClass(nd.mediaClass);
   const bool wasPrivacyCandidate = isPrivacyCandidateClass(nd.mediaClass);
   bool filterPropsChanged = false;
@@ -2566,15 +2563,5 @@ void PipeWireService::registerIpc(IpcService& ipc, const ConfigService& config) 
       return "error: no default input\n";
     setMicMuted(!source->muted);
     return "ok\n";
-  });
-}
-
-bool PipeWireService::spectrumTargetIdle(std::uint32_t targetId, std::uint32_t captureId) const {
-  const auto target = m_nodes.find(targetId);
-  if (m_core == nullptr || target == m_nodes.end() || !target->second->nodeIdle) {
-    return false;
-  }
-  return std::ranges::any_of(m_links, [targetId, captureId](const auto& entry) {
-    return entry.second.outputNodeId == targetId && entry.second.inputNodeId == captureId;
   });
 }

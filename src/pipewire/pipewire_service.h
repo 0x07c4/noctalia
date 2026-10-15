@@ -102,7 +102,6 @@ public:
   [[nodiscard]] int fd() const noexcept;
   [[nodiscard]] int pollTimeoutMs() const noexcept;
   void dispatch();
-  [[nodiscard]] bool spectrumTargetIdle(std::uint32_t targetId, std::uint32_t captureId) const;
   [[nodiscard]] pw_core* coreHandle() const noexcept { return m_core; }
   [[nodiscard]] pw_loop* loop() const noexcept { return m_loop; }
   [[nodiscard]] bool serverSupportsPassiveFollow() const noexcept { return m_serverSupportsPassiveFollow; }
@@ -163,7 +162,6 @@ public:
     std::string mediaClass;
     std::string linkGroup;
     std::string targetObject;
-    bool nodeIdle = false;
     bool nodePassive = false;
     bool streamCaptureSink = false;
     bool streamClassificationReady = false;
