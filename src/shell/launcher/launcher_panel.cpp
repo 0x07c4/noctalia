@@ -3019,8 +3019,11 @@ void LauncherPanel::setActiveCategorySlot(std::size_t slotIndex) {
   m_activeCategorySlotIndex = slotIndex;
   m_activeCategoryType = slot.type;
   if (slot.type == Category && !m_currentCategories.empty()) {
-    const auto active = std::ranges::find(m_currentCategories, m_activeCategory, &LauncherCategory::label);
-    if (active == m_currentCategories.end()) {
+    if (!m_browserMode && slot.categoryIndex < m_currentCategories.size()) {
+      m_activeCategory = m_currentCategories[slot.categoryIndex].label;
+    } else if (
+        std::ranges::find(m_currentCategories, m_activeCategory, &LauncherCategory::label) == m_currentCategories.end()
+    ) {
       m_activeCategory = m_currentCategories.front().label;
     }
   } else {
