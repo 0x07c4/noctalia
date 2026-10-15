@@ -1459,7 +1459,7 @@ void SettingsWindow::openCalendarAccountEditor(std::optional<std::string> accoun
               .options =
                   std::vector<ui::SegmentedOption>{
                       {.label = i18n::tr("settings.calendar-accounts.credential-source-keyring"), .glyph = "key"},
-                      {.label = i18n::tr("settings.calendar-accounts.credential-source-file"), .glyph = "file-lock"},
+                      {.label = i18n::tr("settings.calendar-accounts.credential-source-file"), .glyph = "file-text"},
                   },
               .selectedIndex = draft->credentialSource == CalendarCredentialSource::File ? 1U : 0U,
               .scale = scale,
