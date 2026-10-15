@@ -60,7 +60,12 @@ namespace scripting {
   class PluginRecommendations;
 }
 
+namespace noctalia::theme {
+  struct GeneratedPalette;
+}
+
 namespace settings {
+  class PaletteInspectorContent;
   class SettingsDialogPresenter;
   struct SettingsContentContext;
 } // namespace settings
@@ -97,6 +102,7 @@ public:
   [[nodiscard]] bool onPointerEvent(const PointerEvent& event);
   void onKeyboardEvent(const KeyboardEvent& event);
   void onThemeChanged();
+  void setResolvedPalette(const noctalia::theme::GeneratedPalette& generated, std::string_view mode);
   void onFontChanged();
   void requestRedraw();
   void onExternalOptionsChanged();
@@ -208,6 +214,7 @@ private:
   void openPluginSettingsEditor(std::string pluginId);
   void openPluginStore();
   void openCommunityTemplateStore();
+  void openPaletteInspector();
   void openBarWidgetEditorSheet(
       std::string title, std::function<void(Flex&)> populate, std::function<void()> removeAction = nullptr
   );
@@ -264,6 +271,9 @@ private:
   AccountsService* m_accounts = nullptr;
   CalendarService* m_calendarService = nullptr;
   ClipboardService* m_clipboardService = nullptr;
+  std::unordered_map<std::string, std::uint32_t> m_templateColors;
+  std::string m_templateColorMode;
+  std::shared_ptr<settings::PaletteInspectorContent> m_paletteInspectorContent;
   IpcService* m_ipcService = nullptr;
   AsyncTextureCache* m_asyncTextures = nullptr;
   Label* m_idleLiveStatusLabel = nullptr;

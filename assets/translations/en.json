@@ -1795,6 +1795,21 @@
         "title": "Plugin Store"
       }
     },
+    "palette-inspector": {
+      "copied": "Copied {value}",
+      "copy-failed": "Could not copy the color to the clipboard.",
+      "copy-name": "Copy color name",
+      "copy-hex": "Copy hex value",
+      "description": "Template colors in {mode} mode.",
+      "empty": "No matching colors.",
+      "filter-all": "All Colors",
+      "filter-palette": "Palette",
+      "filter-terminal": "Terminal",
+      "missing": "Unavailable",
+      "search-placeholder": "Search color names or hex values...",
+      "terminal-number": "{number} · ANSI {index}",
+      "title": "Palette Inspector"
+    },
     "schema": {
       "accessibility": {
         "high-contrast": {
@@ -1867,6 +1882,11 @@
         "language": {
           "description": "Override automatic locale detection",
           "label": "Language"
+        },
+        "palette-inspector": {
+          "button": "Inspect Colors",
+          "description": "View template color names, swatches, and hex values for the active palette",
+          "label": "Palette Inspector"
         },
         "palette-source": {
           "description": "Where to derive the color palette from",

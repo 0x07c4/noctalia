@@ -4,6 +4,7 @@
 #include "config/config_service.h"
 #include "config/schema/config_schema.h"
 #include "config/schema/engine.h"
+#include "core/deferred_call.h"
 #include "core/log.h"
 #include "core/process/process.h"
 #include "core/scoped_timer.h"
@@ -1567,6 +1568,11 @@ void SettingsWindow::refreshSettingsRegistry(const Config& cfg) {
   phaseProfileWatch.reset();
 
   for (auto& entry : m_settingsRegistry) {
+    if (entry.section == settings::SettingsSection::Appearance && entry.path.empty() && entry.group == "theme") {
+      if (auto* button = std::get_if<settings::ButtonSetting>(&entry.control)) {
+        button->action = [this]() { DeferredCall::callLater([this]() { openPaletteInspector(); }); };
+      }
+    }
     if (entry.section != settings::SettingsSection::Templates || entry.group != "community") {
       continue;
     }

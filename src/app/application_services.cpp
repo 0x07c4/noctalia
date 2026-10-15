@@ -743,6 +743,7 @@ void Application::initStyleThemeAndWayland() {
     lastResolvedThemeMode = resolvedMode;
     const bool colorsChanged = !lastGeneratedPalette.has_value() || *lastGeneratedPalette != generated;
     lastGeneratedPalette = generated;
+    m_settingsWindow.setResolvedPalette(generated, mode);
     m_templateApplyService.apply(generated, mode, /*force=*/false, /*paletteChanged=*/colorsChanged);
     if (previousMode.has_value() && *previousMode != resolvedMode) {
       m_hookManager.fire(

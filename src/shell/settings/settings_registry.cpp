@@ -555,6 +555,16 @@ namespace settings {
       ));
     }
     entries.push_back(makeEntry(
+        SettingsSection::Appearance, "theme", tr("settings.schema.appearance.palette-inspector.label"),
+        tr("settings.schema.appearance.palette-inspector.description"), {},
+        ButtonSetting{
+            .label = tr("settings.schema.appearance.palette-inspector.button"),
+            .action = {},
+            .glyph = "color-swatch",
+        },
+        "palette inspector template tokens colors swatches hex terminal ansi"
+    ));
+    entries.push_back(makeEntry(
         SettingsSection::Appearance, "theme", tr("settings.schema.appearance.pure-black-dark.label"),
         tr("settings.schema.appearance.pure-black-dark.description"), {"theme", "pure_black_dark"},
         ToggleSetting{cfg.theme.pureBlackDark}, "oled amoled true black background contrast"
