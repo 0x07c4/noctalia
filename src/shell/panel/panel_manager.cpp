@@ -37,6 +37,8 @@
 #include <format>
 #include <optional>
 #include <string>
+#include <utility>
+#include <wayland-client-protocol.h>
 
 PanelManager* PanelManager::s_instance = nullptr;
 
@@ -44,6 +46,7 @@ namespace {
 
   constexpr Logger kLog("panel");
   constexpr auto kKeyboardRelaxDelay = std::chrono::milliseconds(100);
+  constexpr auto kCaptureCloseTimeout = std::chrono::milliseconds(250);
 
   // Layer-shell keyboard interactivity for a panel surface: `initial` is applied at
   // map time, `relaxed` (when set) shortly after by m_keyboardRelaxTimer.
@@ -377,6 +380,10 @@ namespace {
 PanelManager::PanelManager() { s_instance = this; }
 
 PanelManager::~PanelManager() {
+  m_captureCloseTimer.stop();
+  if (m_captureCloseFrame != nullptr) {
+    wl_callback_destroy(m_captureCloseFrame);
+  }
   m_persistentHost.setPanelClosedCallback(nullptr);
   if (s_instance == this) {
     s_instance = nullptr;
@@ -537,7 +544,7 @@ void PanelManager::unregisterPanel(const std::string& id) {
 }
 
 void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest request) {
-  if (m_inTransition) {
+  if (m_inTransition || m_afterCaptureClose) {
     return;
   }
 
@@ -1472,7 +1479,79 @@ void PanelManager::closePanel(bool animateClose) {
   }
 }
 
+void PanelManager::closePanelForCapture(std::function<void()> afterClose) {
+  if (m_afterCaptureClose) {
+    return;
+  }
+  if (!isOpen() || m_surface == nullptr || m_wlSurface == nullptr || m_inTransition) {
+    closePanel(/*animateClose=*/false);
+    DeferredCall::callLater(std::move(afterClose));
+    return;
+  }
+
+  m_afterCaptureClose = std::move(afterClose);
+  m_closing = true;
+  m_attachedOpenAnimationPending = false;
+  const std::uint64_t generation = ++m_destroyGeneration;
+  deactivateOutsideClickHandlers();
+  m_inputDispatcher.setSceneRoot(nullptr);
+  TooltipManager::instance().forceDestroy();
+  if (m_activePopup != nullptr) {
+    m_activePopup->close();
+    m_activePopup = nullptr;
+  }
+  m_animations.cancelAll();
+  m_keyboardRelaxTimer.stop();
+  m_surface->setPrepareFrameCallback({});
+  m_surface->setFrameTickCallback({});
+  m_surface->setUpdateCallback({});
+  m_surface->setSceneRoot(nullptr);
+  m_surface->clearBlurRegion();
+  m_surface->setOpaque(false);
+  m_surface->setInputRegion({});
+  m_surface->discardPendingFrameCallback();
+
+  static const wl_callback_listener listener = {.done = &PanelManager::handleCaptureCloseFrame};
+  m_captureCloseFrame = wl_surface_frame(m_wlSurface);
+  if (m_captureCloseFrame == nullptr || wl_callback_add_listener(m_captureCloseFrame, &listener, this) != 0) {
+    kLog.warn("could not wait for the panel's clear frame; closing before capture");
+    destroyPanel();
+    return;
+  }
+
+  m_captureCloseTimer.start(kCaptureCloseTimeout, [this, generation]() {
+    if (m_destroyGeneration == generation && m_closing) {
+      kLog.warn("panel clear frame timed out; closing before capture");
+      destroyPanel();
+    }
+  });
+  // The caller defers this handoff out of input dispatch. Submit the clear buffer
+  // now so no intervening state-only commit can claim its frame callback.
+  m_surface->renderNow();
+}
+
+void PanelManager::handleCaptureCloseFrame(void* data, wl_callback* callback, std::uint32_t /*time*/) {
+  auto* self = static_cast<PanelManager*>(data);
+  if (callback != self->m_captureCloseFrame) {
+    return;
+  }
+  wl_callback_destroy(callback);
+  self->m_captureCloseFrame = nullptr;
+  self->m_captureCloseTimer.stop();
+  const std::uint64_t generation = self->m_destroyGeneration;
+  DeferredCall::callLater([self, generation]() {
+    if (self->m_destroyGeneration == generation && self->m_closing) {
+      self->destroyPanel();
+    }
+  });
+}
+
 void PanelManager::destroyPanel() {
+  m_captureCloseTimer.stop();
+  if (m_captureCloseFrame != nullptr) {
+    wl_callback_destroy(m_captureCloseFrame);
+    m_captureCloseFrame = nullptr;
+  }
   if (m_attachedToBar && m_attachedPanelGeometryCallback && m_output != nullptr) {
     m_attachedPanelGeometryCallback(m_output, m_sourceBarName, std::nullopt);
   }
@@ -1538,6 +1617,10 @@ void PanelManager::destroyPanel() {
   }
   if (m_panelClosedCallback) {
     m_panelClosedCallback();
+  }
+  if (m_afterCaptureClose) {
+    m_afterCaptureClose();
+    m_afterCaptureClose = {};
   }
 }
 
