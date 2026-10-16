@@ -90,6 +90,11 @@ namespace compositors::umbriel {
     return !m_socketPath.empty();
   }
 
+  const std::string& UmbrielRuntime::socketPath() const {
+    ensureResolved();
+    return m_socketPath;
+  }
+
   std::optional<nlohmann::json>
   UmbrielRuntime::requestCommand(std::string_view cmd, std::optional<std::string_view> arg) const {
     nlohmann::json request = nlohmann::json::object();

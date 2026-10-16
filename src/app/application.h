@@ -126,6 +126,9 @@ class NotificationDBusHost;
 class PipeWirePollSource;
 class PipeWireService;
 class WirePlumberMixer;
+namespace compositors::umbriel {
+  class UmbrielAudioProvider;
+}
 class PipeWireSpectrum;
 class PipeWireSpectrumPollSource;
 class PolkitAgent;
@@ -325,6 +328,8 @@ private:
   std::unique_ptr<WirePlumberMixer> m_wirePlumberMixer;
   std::unique_ptr<EasyEffectsService> m_easyEffectsService;
   std::unique_ptr<PipeWireSpectrum> m_pipewireSpectrum;
+  std::unique_ptr<compositors::umbriel::UmbrielAudioProvider> m_umbrielAudioProvider;
+  std::uint64_t m_umbrielAudioListener = 0;
   std::shared_ptr<SoundPlayer> m_soundPlayer;
 
   TelemetryService m_telemetryService;
