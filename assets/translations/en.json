@@ -3492,6 +3492,10 @@
           "description": "Default time format for shell UI without its own setting",
           "label": "Time Format"
         },
+        "umbriel-audio-provider": {
+          "description": "Share the audio spectrum with Umbriel effects, even without a visualizer widget",
+          "label": "Provide Audio to Umbriel"
+        },
         "umbriel-overview-type-to-launch": {
           "description": "Open the launcher when typing in umbriel overview; uses a tiny keyboard-focus surface while overview is open",
           "label": "Type to Launch"
@@ -4856,10 +4860,6 @@
         "workspace-label-placement": {
           "description": "Corner, centered on the edge, or inside the pill",
           "label": "Workspace Label Placement"
-        },
-        "umbriel_audio_provider_enabled": {
-          "label": "Provide audio to Umbriel",
-          "description": "Share the audio spectrum with Umbriel effects, even without a visualizer widget."
         }
       },
       "types": {
