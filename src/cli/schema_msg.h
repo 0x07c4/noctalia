@@ -241,8 +241,12 @@ namespace noctalia::cli {
       Positional{"path", {}, {}, true, false, false},
   };
   inline constexpr std::array<std::string_view, 3> kMsgWindowSwitcherActionChoices{"close", "hide", "hold"};
+  inline constexpr std::array<std::string_view, 4> kMsgWindowSwitcherScopeChoices{
+      "all", "output", "workspace", "current"
+  };
   inline constexpr std::array kMsgWindowSwitcherPositionals{
       Positional{"action", {}, kMsgWindowSwitcherActionChoices, false, false, false},
+      Positional{"scope", {}, kMsgWindowSwitcherScopeChoices, false, false, false},
   };
   inline constexpr std::array kMsgWorkspaceAlertAddPositionals{
       Positional{"workspace", {}, {}, true, false, false},
