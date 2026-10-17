@@ -637,6 +637,7 @@
         "show-session-buttons": "Session Buttons",
         "show-unlock-hint": "Unlock Hint",
         "show-vpn-label": "Show VPN Label",
+        "show-wave": "Show Wave",
         "show-weather": "Weather",
         "show-week-numbers": "Show Week Numbers",
         "show-when-idle": "Show When Idle",
@@ -4807,6 +4808,10 @@
         "show-vpn-label": {
           "description": "Replaces network label with VPN label in Replace mode; adds VPN label next to VPN icon in Both mode",
           "label": "Show VPN Label"
+        },
+        "show-wave": {
+          "description": "Display as a filled-area wave instead of discrete bars",
+          "label": "Show Wave"
         },
         "show-when-idle": {
           "description": "Keep the visualizer visible even when no media is playing",
