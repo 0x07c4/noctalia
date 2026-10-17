@@ -99,6 +99,28 @@ namespace {
       params.centerX = randomFloat(0.2F, 0.8F);
       params.centerY = randomFloat(0.2F, 0.8F);
       break;
+    case WallpaperTransition::Vortex:
+      params.centerX = randomFloat(0.2F, 0.8F);
+      params.centerY = randomFloat(0.2F, 0.8F);
+      break;
+    case WallpaperTransition::Pixel:
+      params.cellSize = randomFloat(0.02F, 0.05F);
+      params.centerX = randomFloat(0.2F, 0.8F);
+      params.centerY = randomFloat(0.2F, 0.8F);
+      break;
+    case WallpaperTransition::Diamond:
+      params.cellSize = randomFloat(0.0345F, 0.069F);
+      params.centerX = randomFloat(0.2F, 0.8F);
+      params.centerY = randomFloat(0.2F, 0.8F);
+      break;
+    case WallpaperTransition::Golden:
+      params.centerX = randomFloat(0.2F, 0.8F);
+      params.centerY = randomFloat(0.2F, 0.8F);
+      params.angle = randomFloat(0.0F, 360.0F);
+      break;
+    case WallpaperTransition::Melt:
+      params.angle = randomFloat(0.0F, 360.0F);
+      break;
     case WallpaperTransition::Fade:
     default:
       break;

@@ -702,7 +702,7 @@ location = "https://example.invalid/bad"
     // Invalid transition values are surfaced instead of silently changing the
     // configured effect pool.
     {
-      auto t = toml::parse(R"(transition = ["fade", "unknown", 3])");
+      auto t = toml::parse(R"(transition = ["fade", "Fade", "unknown", 3])");
       LockscreenConfig lockscreen{};
       Diagnostics d;
       readInto(t, lockscreen, lockscreenSchema(), "lockscreen", d);
@@ -712,8 +712,8 @@ location = "https://example.invalid/bad"
       const auto warnings = std::ranges::count_if(d.entries, [](const Diagnostics::Entry& entry) {
         return entry.severity == Diagnostics::Severity::Warning && entry.path.starts_with("lockscreen.transition[");
       });
-      if (warnings != 2) {
-        fail("lockscreen.transition: invalid entries were not reported");
+      if (warnings != 3) {
+        fail("lockscreen.transition: invalid or incorrectly-cased entries were not reported");
       }
     }
     // Grace period is strictly opt-in: a config that never mentions the key keeps
