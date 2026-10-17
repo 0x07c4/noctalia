@@ -1,5 +1,6 @@
 #include "capture/screenshot_region_overlay.h"
 
+#include "capture/screenshot_region_badge.h"
 #include "config/config_types.h"
 #include "core/deferred_call.h"
 #include "core/input/key_symbols.h"
@@ -41,8 +42,6 @@ namespace capture {
 
     constexpr Logger kLog("screenshot-region");
     constexpr float kDimensionFontSize = 14.0F;
-    constexpr float kDimensionCursorOffsetX = 12.0F;
-    constexpr float kDimensionCursorOffsetY = 14.0F;
     constexpr float kDimensionPaddingX = 6.0F;
     constexpr float kDimensionPaddingY = 4.0F;
     constexpr float kSelectionBorderWidth = 2.0F;
@@ -1140,24 +1139,12 @@ namespace capture {
           const float badgeHeight = inst->dimensionsLabel->height() + (kDimensionPaddingY * 2.0F);
           inst->dimensionsBadge->setSize(badgeWidth, badgeHeight);
 
-          const double selX0 = std::min(m_startGlobalX, m_currentGlobalX);
-          const double selX1 = std::max(m_startGlobalX, m_currentGlobalX);
-          const double selY0 = std::min(m_startGlobalY, m_currentGlobalY);
-          const double selY1 = std::max(m_startGlobalY, m_currentGlobalY);
+          const auto badgePos = placeRegionBadge(
+              surfaceW, surfaceH, holeX0 - kSelectionBorderWidth, holeY0 - kSelectionBorderWidth,
+              holeX1 + kSelectionBorderWidth, holeY1 + kSelectionBorderWidth, badgeWidth, badgeHeight
+          );
 
-          const double badgeCursorX = std::clamp(targetX, selX0, selX1);
-          const double badgeCursorY = std::clamp(targetY, selY0, selY1);
-
-          float badgeX = static_cast<float>(badgeCursorX - outLeft) + kDimensionCursorOffsetX;
-          float badgeY = static_cast<float>(badgeCursorY - outTop) + kDimensionCursorOffsetY;
-
-          const float maxX = std::max(0.0F, surfaceW - badgeWidth);
-          const float maxY = std::max(0.0F, surfaceH - badgeHeight);
-
-          badgeX = std::clamp(badgeX, 0.0F, maxX);
-          badgeY = std::clamp(badgeY, 0.0F, maxY);
-
-          inst->dimensionsBadge->setPosition(badgeX, badgeY);
+          inst->dimensionsBadge->setPosition(badgePos.x, badgePos.y);
           inst->dimensionsLabel->setPosition(kDimensionPaddingX, kDimensionPaddingY);
           inst->dimensionsBadge->setVisible(true);
         } else {
