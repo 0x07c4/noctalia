@@ -484,6 +484,7 @@ namespace settings {
         {"suspend", i18n::tr("session.actions.suspend"), {}},
         {"lock_and_suspend", i18n::tr("session.actions.lock-and-suspend"), {}},
         {"reboot", i18n::tr("session.actions.reboot"), {}},
+        {"reboot_uefi", i18n::tr("session.actions.reboot-uefi"), {}},
         {"shutdown", i18n::tr("session.actions.shutdown"), {}},
         {"command", i18n::tr("session.actions.custom"), {}},
     };

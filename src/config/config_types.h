@@ -227,7 +227,7 @@ enum class SessionActionButtonVariant : std::uint8_t {
 };
 
 struct SessionPanelActionConfig {
-  // "lock" | "logout" | "suspend" | "lock_and_suspend" | "reboot" | "shutdown" | "command"
+  // "lock" | "logout" | "suspend" | "lock_and_suspend" | "reboot" | "reboot_uefi" | "shutdown" | "command"
   std::string action;
   bool enabled = true;
   // When set, runs via `process::runAsync` (shell string) instead of the built-in handler.

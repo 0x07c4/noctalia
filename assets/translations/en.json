@@ -1033,6 +1033,7 @@
       "lock-and-suspend": "Lock & Suspend",
       "logout": "Log Out",
       "reboot": "Reboot",
+      "reboot-uefi": "Reboot to UEFI",
       "shutdown": "Shut Down",
       "suspend": "Suspend"
     },
