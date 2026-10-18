@@ -538,7 +538,10 @@ void PanelManager::unregisterPanel(const std::string& id) {
     return;
   }
   if (isOpenPanel(id)) {
-    closePanel(/*animateClose=*/false);
+    // A closing panel is still read by its close animation: destroy it now and cancel
+    // the pending deferred destroy.
+    ++m_destroyGeneration;
+    destroyPanel();
   }
   m_panels.erase(it);
 }
