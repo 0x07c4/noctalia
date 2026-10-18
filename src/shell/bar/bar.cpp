@@ -1075,6 +1075,8 @@ namespace {
             const float progress = std::clamp(run.accordionProgress, 0.0F, 1.0F);
             revealMain = visMain + (fullMain - visMain) * progress;
           }
+          // Match Flex's logical-pixel positions so right-anchored siblings keep a stable rounding phase.
+          revealMain = std::ceil(revealMain);
         }
         // Cross-size is the fixed capsuleCross, independent of per-widget content scale: scaling a widget
         // enlarges its glyph/text inside the fixed-height pill rather than resizing the capsule (so a
