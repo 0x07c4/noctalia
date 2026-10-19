@@ -175,6 +175,10 @@ a release build would pass a broken test silently; `TEST_CHECK` prints the faile
 exits non-zero. The header refuses to compile with `NDEBUG`, so test executables set
 `override_options: ['b_ndebug=false']` in `meson.build`.
 
+Compare parsed floating-point values with an appropriate tolerance, not exact equality to a decimal literal. For
+double-precision fixtures near 1, use `std::abs(actual - expected) <= std::numeric_limits<double>::epsilon()`, as in
+the plugin manifest tests. This also accommodates excess precision on 32-bit x87 builds.
+
 ## Commit Messages
 
 Follow the Conventional Commits style used in the history: `type(scope): summary`, or `type: summary` when no scope
