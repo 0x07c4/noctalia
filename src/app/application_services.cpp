@@ -357,14 +357,10 @@ void Application::retrySecretServiceConsumers(bool defaultCollectionUnlocked) {
   }
   // A locked storage key is only worth reopening once the collection is actually unlocked: a lookup
   // then reads silently, whereas retrying while still locked would raise a second keyring prompt.
-  // Some providers (seen with a passwordless KWallet) answer a lookup made while the wallet is still
-  // opening with a malformed secret instead of an error, which surfaces as BackendError.
   const security::StorageKeyState storageKeyState = m_storageKeyProvider.state();
   if (!m_storageKeyAutoRetried
       && (storageKeyState == security::StorageKeyState::Unavailable
-          || ((storageKeyState == security::StorageKeyState::DeniedOrLocked
-               || storageKeyState == security::StorageKeyState::BackendError)
-              && defaultCollectionUnlocked))) {
+          || (storageKeyState == security::StorageKeyState::DeniedOrLocked && defaultCollectionUnlocked))) {
     m_storageKeyAutoRetried = true;
     kLog.info("secret service is running; reopening encrypted storage");
     DeferredCall::callLater([this]() { m_storageKeyProvider.retry(); });
