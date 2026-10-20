@@ -30,6 +30,21 @@ namespace scripting {
     bool focused = false;
   };
 
+  // A calendar event as exposed to plugin scripts via noctalia.calendarEvents().
+  // Mirrors CalendarEvent, but with wall-clock milliseconds instead of a chrono time_point so the
+  // scripting layer stays off the calendar layer's headers.
+  struct ScriptCalendarEvent {
+    std::string id;
+    std::string title;
+    std::string calendarName;
+    std::string colorHex;
+    std::string location;
+    std::string url; // resolved http(s) meeting link, empty when the event has none
+    double startMs = 0.0;
+    double endMs = 0.0;
+    bool allDay = false;
+  };
+
   class ScriptApiContext {
   public:
     using LoadSoundHook =
@@ -107,6 +122,20 @@ namespace scripting {
     [[nodiscard]] std::optional<std::string> clipboardText() const {
       std::scoped_lock lock(m_mutex);
       return m_clipboardText;
+    }
+
+    // Merged, already-expanded calendar events, mirrored from CalendarService on the main thread
+    // so script bindings read them synchronously and race-free, exactly like clipboard text above.
+    // Null until the first successful sync, which lets a plugin tell "no events" apart from "not
+    // synced yet". The pointed-to list is immutable; bindings hold the shared_ptr while converting.
+    void setCalendarEvents(std::shared_ptr<const std::vector<ScriptCalendarEvent>> events) {
+      std::scoped_lock lock(m_mutex);
+      m_calendarEvents = std::move(events);
+    }
+
+    [[nodiscard]] std::shared_ptr<const std::vector<ScriptCalendarEvent>> calendarEvents() const {
+      std::scoped_lock lock(m_mutex);
+      return m_calendarEvents;
     }
 
     // Shell [shell].time_format / date_format — mirrored for noctalia.timeFormat() / dateFormat().
@@ -270,6 +299,7 @@ namespace scripting {
     std::vector<ScriptOutputInfo> m_outputs;
     std::unordered_map<std::string, std::string> m_wallpaperPaths;
     std::optional<std::string> m_clipboardText;
+    std::shared_ptr<const std::vector<ScriptCalendarEvent>> m_calendarEvents;
     std::function<void(const std::string&, bool)> m_wallpaperEnabledHook;
     std::function<void(const std::string&, const std::string&)> m_wallpaperHook;
     SetWallpaperMaskHook m_wallpaperMaskHook;
