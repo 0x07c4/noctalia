@@ -4058,6 +4058,10 @@
             "description": "Start an interactive region screenshot",
             "label": "Region screenshot"
           },
+          "screenshot-window": {
+            "description": "Capture the focused window",
+            "label": "Window screenshot"
+          },
           "session": {
             "description": "Run a built-in session action",
             "label": "Session action"
