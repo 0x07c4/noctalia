@@ -37,7 +37,8 @@ namespace scripting {
   inline constexpr std::uint32_t kIdleWatchPluginApiVersion = 35;
   inline constexpr std::uint32_t kLayerEntryPluginApiVersion = 36;
   inline constexpr std::uint32_t kCalendarEventsPluginApiVersion = 37;
-  inline constexpr std::uint32_t kCurrentPluginApiVersion = kCalendarEventsPluginApiVersion;
+  inline constexpr std::uint32_t kBarDragAndDropPluginApiVersion = 38;
+  inline constexpr std::uint32_t kCurrentPluginApiVersion = kBarDragAndDropPluginApiVersion;
 
   static_assert(kOldestSupportedPluginApiVersion <= kCurrentPluginApiVersion);
 
