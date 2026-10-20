@@ -1206,6 +1206,18 @@ ext_idle_notification_v1* WaylandConnection::createIdleNotification(std::uint32_
   return ext_idle_notifier_v1_get_idle_notification(m_idleNotifier, timeoutMs, seat);
 }
 
+ext_idle_notification_v1* WaylandConnection::createInputIdleNotification(std::uint32_t timeoutMs) const {
+  wl_seat* const seat = this->seat();
+  if (m_idleNotifier == nullptr
+      || seat == nullptr
+      || ext_idle_notifier_v1_get_version(m_idleNotifier)
+          < EXT_IDLE_NOTIFIER_V1_GET_INPUT_IDLE_NOTIFICATION_SINCE_VERSION) {
+    return nullptr;
+  }
+
+  return ext_idle_notifier_v1_get_input_idle_notification(m_idleNotifier, timeoutMs, seat);
+}
+
 zwp_idle_inhibit_manager_v1* WaylandConnection::idleInhibitManager() const noexcept { return m_idleInhibitManager; }
 bool WaylandConnection::hasBackgroundEffectBlur() const noexcept { return m_backgroundEffectBlurSupported; }
 ext_background_effect_manager_v1* WaylandConnection::backgroundEffectManager() const noexcept {

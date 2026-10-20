@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/toml.h"
+#include "scripting/plugin_layer_config.h"
 
 #include <atomic>
 #include <cstdint>
@@ -38,6 +39,14 @@ namespace scripting {
     using SetWallpaperMaskHook =
         std::function<void(std::uint64_t, const std::string&, const std::string&, const std::string&)>;
     using ClearWallpaperMasksHook = std::function<void(std::uint64_t)>;
+    using IdleWatchDelivery = std::function<void(bool idle)>;
+    using IdleWatchHook = std::function<void(
+        std::uint64_t hostId, int watchId, std::uint32_t timeoutMs, bool ignoreInhibitors, IdleWatchDelivery delivery
+    )>;
+    using IdleUnwatchHook = std::function<void(std::uint64_t hostId, int watchId)>;
+    using ReleaseIdleWatchesHook = std::function<void(std::uint64_t hostId)>;
+    using LayerCommandHook = std::function<
+        void(PluginLayerCommand command, const std::string& entryId, const PluginLayerConfigPatch& patch)>;
 
     [[nodiscard]] bool isDarkMode() const noexcept { return m_darkMode.load(std::memory_order_relaxed); }
     void setDarkMode(bool dark) noexcept { m_darkMode.store(dark, std::memory_order_relaxed); }
@@ -214,6 +223,42 @@ namespace scripting {
 
     [[nodiscard]] UnloadPluginSoundsHook unloadPluginSoundsHook() const { return m_unloadPluginSoundsHook; }
 
+    // noctalia.idle.watch()/unwatch(). Wired to PluginIdleWatches in Application; invoked only on
+    // the main thread (from dispatchSideEffects). The release hook runs when a Luau host dies.
+    void setIdleWatchHook(IdleWatchHook hook) { m_idleWatchHook = std::move(hook); }
+
+    void invokeIdleWatch(
+        std::uint64_t hostId, int watchId, std::uint32_t timeoutMs, bool ignoreInhibitors, IdleWatchDelivery delivery
+    ) const {
+      if (m_idleWatchHook) {
+        m_idleWatchHook(hostId, watchId, timeoutMs, ignoreInhibitors, std::move(delivery));
+      }
+    }
+
+    void setIdleUnwatchHook(IdleUnwatchHook hook) { m_idleUnwatchHook = std::move(hook); }
+
+    void invokeIdleUnwatch(std::uint64_t hostId, int watchId) const {
+      if (m_idleUnwatchHook) {
+        m_idleUnwatchHook(hostId, watchId);
+      }
+    }
+
+    void setReleaseIdleWatchesHook(ReleaseIdleWatchesHook hook) { m_releaseIdleWatchesHook = std::move(hook); }
+
+    [[nodiscard]] ReleaseIdleWatchesHook releaseIdleWatchesHook() const { return m_releaseIdleWatchesHook; }
+
+    // noctalia.layer.show()/hide()/configure(). Wired to PluginLayerHost in Application; main thread
+    // only (from dispatchSideEffects).
+    void setLayerCommandHook(LayerCommandHook hook) { m_layerCommandHook = std::move(hook); }
+
+    void invokeLayerCommand(
+        PluginLayerCommand command, const std::string& entryId, const PluginLayerConfigPatch& patch
+    ) const {
+      if (m_layerCommandHook) {
+        m_layerCommandHook(command, entryId, patch);
+      }
+    }
+
   private:
     std::atomic<SystemMonitorService*> m_systemMonitor{nullptr};
     std::atomic<bool> m_darkMode{true};
@@ -234,6 +279,10 @@ namespace scripting {
     LoadSoundHook m_loadSoundHook;
     PlaySoundHook m_playSoundHook;
     UnloadPluginSoundsHook m_unloadPluginSoundsHook;
+    IdleWatchHook m_idleWatchHook;
+    IdleUnwatchHook m_idleUnwatchHook;
+    ReleaseIdleWatchesHook m_releaseIdleWatchesHook;
+    LayerCommandHook m_layerCommandHook;
   };
 
 } // namespace scripting

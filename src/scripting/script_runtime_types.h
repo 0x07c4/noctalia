@@ -2,6 +2,7 @@
 
 #include "config/config_types.h"
 #include "core/process/process.h"
+#include "scripting/plugin_layer_config.h"
 #include "scripting/script_arg.h"
 #include "ui/ui_tree.h"
 
@@ -177,6 +178,9 @@ namespace scripting {
     OpenPluginSettings,
     LoadSound,
     PlaySound,
+    IdleWatch,
+    IdleUnwatch,
+    LayerCommand,
   };
 
   struct ScriptSideEffect {
@@ -189,12 +193,18 @@ namespace scripting {
     // PlaySound: hostId identifies the sound bank and title the logical name.
     std::uint64_t hostId = 0;
     int callbackRef = 0;
+    // IdleWatch: hostId and callbackRef identify the watch, timeoutMs its timeout, flag ignoreInhibitors.
+    // IdleUnwatch: hostId and callbackRef identify the watch.
+    std::uint32_t timeoutMs = 0;
     // SetWallpaperEnabled: title holds the output connector, flag the enabled state.
     // SetWallpaper: title holds the output connector (empty = all outputs), body the image path.
     // SetWallpaperMask: title holds output, body mask path, extra wallpaper path, and hostId the owner.
     // TogglePanel: title holds the panel id ("author/plugin:panel").
     // OpenPluginSettings: title holds the plugin id ("author/plugin").
     bool flag = false;
+    // LayerCommand: title holds the layer entry id ("author/plugin:entry"); layerPatch is read for Configure.
+    PluginLayerCommand layerCommand = PluginLayerCommand::Show;
+    PluginLayerConfigPatch layerPatch;
   };
 
   struct ScriptSnapshot {
@@ -218,6 +228,7 @@ namespace scripting {
     SoundLoadResult,
     ColorPickerResult,
     StateWatchResult,
+    IdleWatchResult,
     StreamLine,
     HttpStreamLine,
     HttpStreamClosed,
@@ -284,6 +295,8 @@ namespace scripting {
     std::optional<std::string> colorPickerResult;
     // StateWatchResult payload (the changed value as JSON).
     std::string stateJson;
+    // IdleWatchResult payload: true on idled, false on resumed.
+    bool idle = false;
     // Stop payload: SIGINT/SIGTERM for signal-driven process shutdown, otherwise 0.
     int exitSignal = 0;
     // Stop payload: identifies why the runtime is being destroyed.

@@ -226,6 +226,9 @@ public:
   [[nodiscard]] ext_idle_notifier_v1* idleNotifier() const noexcept;
   /// Inhibitor-aware idle notification (`get_idle_notification`); honors `zwp_idle_inhibitor_v1`.
   [[nodiscard]] ext_idle_notification_v1* createIdleNotification(std::uint32_t timeoutMs) const;
+  /// Input-only idle notification (`get_input_idle_notification`, notifier v2); ignores idle inhibitors.
+  /// Returns null when the compositor's notifier is older than v2.
+  [[nodiscard]] ext_idle_notification_v1* createInputIdleNotification(std::uint32_t timeoutMs) const;
   [[nodiscard]] zwp_idle_inhibit_manager_v1* idleInhibitManager() const noexcept;
   [[nodiscard]] const std::vector<WaylandOutput>& outputs() const noexcept;
   [[nodiscard]] WaylandOutput* findOutputByWl(wl_output* wlOutput);

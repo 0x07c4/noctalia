@@ -714,6 +714,21 @@ void Application::initStyleThemeAndWayland() {
   // Let a plugin toggle one of its own panels.
   m_scriptApi.setTogglePanelHook([this](const std::string& panelId) { m_panelManager.togglePanel(panelId); });
 
+  m_scriptApi.setIdleWatchHook([this](
+                                   std::uint64_t hostId, int watchId, std::uint32_t timeoutMs, bool ignoreInhibitors,
+                                   scripting::ScriptApiContext::IdleWatchDelivery delivery
+                               ) {
+    m_pluginIdleWatches.watch(hostId, watchId, timeoutMs, ignoreInhibitors, std::move(delivery));
+  });
+  m_scriptApi.setIdleUnwatchHook([this](std::uint64_t hostId, int watchId) {
+    m_pluginIdleWatches.unwatch(hostId, watchId);
+  });
+  m_scriptApi.setReleaseIdleWatchesHook([this](std::uint64_t hostId) { m_pluginIdleWatches.release(hostId); });
+  m_scriptApi.setLayerCommandHook([this](
+                                      scripting::PluginLayerCommand command, const std::string& entryId,
+                                      const scripting::PluginLayerConfigPatch& patch
+                                  ) { m_pluginLayerHost.command(command, entryId, patch); });
+
   m_scriptApi.setOpenPluginSettingsHook([this](const std::string& pluginId) {
     if (!m_panelManager.openPluginSettings(pluginId)) {
       kLog.warn("plugin openSettings ignored: \"{}\" has no settings", pluginId);
@@ -861,6 +876,7 @@ void Application::reconcileOutputSurfaces() {
   m_notificationToast.onOutputChange();
   m_osdOverlay.onOutputChange();
   m_windowSwitcher.onOutputChange();
+  m_pluginLayerHost.onOutputChange();
 }
 
 void Application::initWaylandCallbacks() {

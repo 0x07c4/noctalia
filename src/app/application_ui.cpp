@@ -437,6 +437,9 @@ void Application::initInputDispatch() {
     if (m_screenshotService.onPointerEvent(event)) {
       return;
     }
+    if (m_pluginLayerHost.onPointerEvent(event)) {
+      return;
+    }
     if (m_lockscreenWidgetsController.onPointerEvent(event)) {
       return;
     }
@@ -505,6 +508,9 @@ void Application::initInputDispatch() {
     }
     if (m_desktopWidgetsController.isEditing()) {
       m_desktopWidgetsController.onKeyboardEvent(event);
+      return;
+    }
+    if (m_pluginLayerHost.onKeyboardEvent(event)) {
       return;
     }
     if (m_settingsWindow.ownsKeyboardSurface(m_wayland.lastKeyboardSurface())) {
@@ -686,6 +692,8 @@ void Application::initPanelManagerAndPanels() {
   reloadPluginLauncherProviders();
   reloadDmenuProviders();
   reloadPluginPanels();
+  reloadPluginLayers();
+  m_configService.addReloadCallback([this]() { m_pluginLayerHost.onConfigReload(); });
   m_overviewLauncherCapture.initialize(m_wayland, &m_renderContext, m_compositorPlatform, m_panelManager);
   m_overviewLauncherCapture.setEnabled(overviewTypeToLaunchEnabled(m_configService));
   m_overviewLauncherCapture.setOpenLauncherCallback(
@@ -770,7 +778,11 @@ void Application::initNotificationAndOsd() {
   m_configService.addReloadCallback([this]() { m_windowSwitcher.onConfigReload(); });
   m_configService.addReloadCallback([this]() { m_osdOverlay.onConfigReload(); });
   m_idleGraceOverlay.initialize(m_wayland, &m_renderContext);
-  m_wayland.setIdleCapabilitiesReadyCallback([this]() { m_idleManager.reload(m_configService.config().idle); });
+  m_pluginIdleWatches.initialize(m_wayland);
+  m_wayland.setIdleCapabilitiesReadyCallback([this]() {
+    m_idleManager.reload(m_configService.config().idle);
+    m_pluginIdleWatches.onCapabilitiesReady();
+  });
   m_idleManager.initialize(
       m_wayland,
       [this](
@@ -817,8 +829,10 @@ void Application::initNotificationAndOsd() {
     if (m_screenSaverService->active()) {
       m_screenSaverService->setChangeCallback([this](std::int64_t locks) {
         m_idleManager.setScreenSaverInhibitLocks(locks);
+        m_pluginIdleWatches.setScreenSaverInhibited(locks > 0);
       });
       m_idleManager.setScreenSaverInhibitLocks(m_screenSaverService->inhibitLocks());
+      m_pluginIdleWatches.setScreenSaverInhibited(m_screenSaverService->inhibitLocks() > 0);
     } else {
       m_screenSaverService.reset();
     }
