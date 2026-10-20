@@ -1309,6 +1309,8 @@
       "merged-user-description": "Combines config files and GUI overrides into one TOML file. Built-in defaults stay implicit.",
       "merged-user-save-title": "Save Merged User Config",
       "merged-user-title": "Merged User Config (Recommended)",
+      "privacy-warning-description": "Both export modes may include API keys, passwords, or other sensitive data stored in your config, including by plugins. Treat exported files as private. Review and remove sensitive data before sharing.",
+      "privacy-warning-title": "Exports may contain secrets",
       "title": "Export Config"
     },
     "idle": {
