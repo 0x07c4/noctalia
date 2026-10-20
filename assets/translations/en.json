@@ -3711,6 +3711,8 @@
       "success": "Private storage was reset successfully."
     },
     "templates": {
+      "documentation": "Documentation",
+      "readme": "Readme",
       "store": {
         "browse": "Browse Templates",
         "categories": "Categories",

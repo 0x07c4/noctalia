@@ -930,8 +930,9 @@ public:
     return (*m_results)[index].origin;
   }
 
-  [[nodiscard]] std::optional<TooltipAnchorInsets>
-  itemTooltipAnchorInsets(std::size_t index, float cellWidth, float cellHeight) const override {
+  [[nodiscard]] std::optional<TooltipAnchorInsets> itemTooltipAnchorInsets(
+      std::size_t index, float cellWidth, float cellHeight, bool /*overlayHovered*/
+  ) const override {
     if (m_results == nullptr || index >= m_results->size() || (*m_results)[index].originGlyph.empty()) {
       return std::nullopt;
     }
@@ -1081,8 +1082,9 @@ public:
     return (*m_results)[index].origin;
   }
 
-  [[nodiscard]] std::optional<TooltipAnchorInsets>
-  itemTooltipAnchorInsets(std::size_t index, float cellWidth, float cellHeight) const override {
+  [[nodiscard]] std::optional<TooltipAnchorInsets> itemTooltipAnchorInsets(
+      std::size_t index, float cellWidth, float cellHeight, bool /*overlayHovered*/
+  ) const override {
     if (m_results == nullptr || index >= m_results->size() || (*m_results)[index].originGlyph.empty()) {
       return std::nullopt;
     }

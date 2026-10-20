@@ -12,6 +12,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -30,6 +31,10 @@ namespace noctalia::theme {
     constexpr Logger kLog("community_templates");
     constexpr std::string_view kCatalogUrl = "https://api.noctalia.dev/templates";
     constexpr std::string_view kCacheMetadataFilename = ".noctalia-cache.json";
+
+    std::string templateReadmeUrl(std::string_view id) {
+      return std::format("https://github.com/noctalia-dev/community-templates/blob/main/{}/README.md", id);
+    }
 
     struct CommunityTemplateFile {
       std::string name;
@@ -864,6 +869,9 @@ namespace noctalia::theme {
       t.id = info.id;
       t.displayName = info.displayName.empty() ? info.id : info.displayName;
       t.category = info.category;
+      if (std::ranges::contains(info.files, "README.md", &CommunityTemplateFile::name)) {
+        t.documentationUrl = templateReadmeUrl(info.id);
+      }
       appendOutputPathsFromCacheToml(t);
       out.push_back(std::move(t));
     }
@@ -884,6 +892,9 @@ namespace noctalia::theme {
       if (!std::filesystem::exists(toml))
         continue;
       if (auto info = readTemplateTomlInfo(toml, cacheId)) {
+        if (std::filesystem::is_regular_file(entry.path() / "README.md", ec)) {
+          info->documentationUrl = templateReadmeUrl(cacheId);
+        }
         out.push_back(std::move(*info));
       }
     }
