@@ -59,6 +59,7 @@ public:
   [[nodiscard]] bool ownsSurface(wl_surface* surface) const noexcept;
   bool onPointerEvent(const PointerEvent& event);
 
+  // Prefer a landscape image; otherwise use the first available image.
   [[nodiscard]] TextureHandle currentTexture() const;
   [[nodiscard]] std::string currentPath() const;
 
@@ -86,6 +87,7 @@ private:
     Unavailable, // wallpaper disabled, target unknown, or no candidate images
   };
 
+  [[nodiscard]] const WallpaperInstance* currentInstance() const;
   [[nodiscard]] bool isConnectorKnown(std::string_view connector) const;
   // Persist a resolved image path to a single connector, or to every connected
   // output plus the default when no connector is given.

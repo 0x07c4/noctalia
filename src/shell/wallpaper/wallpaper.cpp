@@ -334,22 +334,31 @@ Wallpaper::~Wallpaper() {
   }
 }
 
-TextureHandle Wallpaper::currentTexture() const {
+const WallpaperInstance* Wallpaper::currentInstance() const {
+  const WallpaperInstance* firstAvailable = nullptr;
   for (const auto& inst : m_instances) {
-    if (const TextureHandle texture = inst->currentImage.texture(); texture.valid()) {
-      return texture;
+    const TextureHandle texture = inst->currentImage.texture();
+    if (!texture.valid() || inst->currentPath.empty()) {
+      continue;
+    }
+    if (texture.sourceWidth > texture.sourceHeight) {
+      return inst.get();
+    }
+    if (firstAvailable == nullptr) {
+      firstAvailable = inst.get();
     }
   }
-  return {};
+  return firstAvailable;
+}
+
+TextureHandle Wallpaper::currentTexture() const {
+  const WallpaperInstance* inst = currentInstance();
+  return inst != nullptr ? inst->currentImage.texture() : TextureHandle{};
 }
 
 std::string Wallpaper::currentPath() const {
-  for (const auto& inst : m_instances) {
-    if (inst->currentImage.texture().valid() && !inst->currentPath.empty()) {
-      return inst->currentPath;
-    }
-  }
-  return {};
+  const WallpaperInstance* inst = currentInstance();
+  return inst != nullptr ? inst->currentPath : std::string{};
 }
 
 bool Wallpaper::ownsSurface(wl_surface* surface) const noexcept {
