@@ -1446,6 +1446,7 @@ std::unique_ptr<Flex> SettingsWindow::buildStatusRow(float scale) {
   return settings::makeSettingsStatusBanner({
       .message = messageText,
       .error = statusIsError,
+      .scrollable = true,
       .scale = scale,
       .onDismiss = transientStatus ? std::function<void()>{[this]() {
         clearStatusMessage();

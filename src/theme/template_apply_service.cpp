@@ -175,6 +175,7 @@ namespace noctalia::theme {
     {
       std::scoped_lock lock(m_mutex);
       m_shutdown = true;
+      m_warningGeneration->store(0);
       m_pendingRequest.reset();
     }
     m_cv.notify_one();
@@ -219,6 +220,11 @@ namespace noctalia::theme {
     m_afterApplyCallback = std::move(callback);
   }
 
+  void TemplateApplyService::setWarningCallback(std::function<void(std::string_view)> callback) const {
+    std::scoped_lock lock(m_mutex);
+    m_warningCallback = std::move(callback);
+  }
+
   void TemplateApplyService::apply(
       const GeneratedPalette& palette, std::string_view defaultMode, bool force, bool paletteChanged
   ) const {
@@ -247,6 +253,7 @@ namespace noctalia::theme {
       } else {
         request.undoBuiltinIds = syncAppliedBuiltinIds(request.templates);
         request.generation = ++m_nextGeneration;
+        m_warningGeneration->store(request.generation);
         m_lastAppliedRequest = request;
         m_pendingRequest = std::move(request);
         queued = true;
@@ -332,6 +339,9 @@ namespace noctalia::theme {
     options.hookRunner = &hookRunner;
     options.generation = request.generation;
     options.hookCancel = m_hookCancel;
+    options.hookWarningCallback = [this, generation = request.generation](std::string warning) {
+      recordHookWarning(generation, std::move(warning));
+    };
 
     TemplateEngine engine(TemplateEngine::makeThemeData(request.palette), options);
 
@@ -535,6 +545,7 @@ namespace noctalia::theme {
         request = std::move(*m_pendingRequest);
         m_pendingRequest.reset();
         m_inFlight = true;
+        m_pendingWarnings.clear();
       }
 
       applyRequest(request);
@@ -547,17 +558,39 @@ namespace noctalia::theme {
       }
 
       std::function<void()> afterApplyCallback;
+      std::function<void()> warningCallback;
       {
         std::scoped_lock lock(m_mutex);
         m_inFlight = false;
         // A superseded generation reports nothing and leaves an owed palette change to the
         // generation that replaced it.
-        if (!m_shutdown && request.generation == m_nextGeneration && m_afterApplyCallback) {
-          const bool paletteChanged = std::exchange(m_paletteChangedOwed, false);
-          afterApplyCallback = [callback = m_afterApplyCallback, mode = request.defaultMode, paletteChanged]() {
-            callback(mode, paletteChanged);
-          };
+        if (!m_shutdown && request.generation == m_nextGeneration) {
+          if (m_afterApplyCallback) {
+            const bool paletteChanged = std::exchange(m_paletteChangedOwed, false);
+            afterApplyCallback = [callback = m_afterApplyCallback, mode = request.defaultMode, paletteChanged]() {
+              callback(mode, paletteChanged);
+            };
+          }
+          if (m_warningCallback && !m_pendingWarnings.empty()) {
+            warningCallback = [callback = m_warningCallback, warnings = std::move(m_pendingWarnings),
+                               warningGeneration = m_warningGeneration, generation = request.generation]() {
+              if (warningGeneration->load() != generation) {
+                return;
+              }
+              std::string message;
+              for (const std::string& warning : warnings) {
+                if (!message.empty()) {
+                  message += "\n\n";
+                }
+                message += warning;
+              }
+              callback(message);
+            };
+          }
         }
+      }
+      if (warningCallback) {
+        DeferredCall::callLater(std::move(warningCallback));
       }
       if (afterApplyCallback) {
         DeferredCall::callLater(std::move(afterApplyCallback));
@@ -568,6 +601,13 @@ namespace noctalia::theme {
   bool TemplateApplyService::requestSuperseded(std::uint64_t generation) const {
     std::scoped_lock lock(m_mutex);
     return m_shutdown || generation != m_nextGeneration;
+  }
+
+  void TemplateApplyService::recordHookWarning(std::uint64_t generation, std::string warning) const {
+    std::scoped_lock lock(m_mutex);
+    if (!m_shutdown && generation == m_nextGeneration) {
+      m_pendingWarnings.insert(std::move(warning));
+    }
   }
 
 } // namespace noctalia::theme

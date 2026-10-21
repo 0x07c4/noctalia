@@ -47,6 +47,8 @@ namespace noctalia::theme {
     ) const;
     // The notification handler. Sticky: set once.
     void setAfterApplyCallback(std::function<void(std::string_view appliedMode, bool paletteChanged)> callback) const;
+    // Hook warnings are delivered on the main thread after an application finishes.
+    void setWarningCallback(std::function<void(std::string_view)> callback) const;
     void registerIpc(IpcService& ipc);
 
   private:
@@ -77,6 +79,7 @@ namespace noctalia::theme {
     void applyRequest(const ApplyRequest& request) const;
     void workerLoop();
     [[nodiscard]] bool requestSuperseded(std::uint64_t generation) const;
+    void recordHookWarning(std::uint64_t generation, std::string warning) const;
 
     ConfigService& m_config;
     mutable std::mutex m_mutex;
@@ -94,6 +97,9 @@ namespace noctalia::theme {
     mutable bool m_shutdown = false;
     mutable bool m_inFlight = false;
     mutable std::function<void(std::string_view appliedMode, bool paletteChanged)> m_afterApplyCallback;
+    mutable std::function<void(std::string_view)> m_warningCallback;
+    mutable std::set<std::string> m_pendingWarnings;
+    std::shared_ptr<std::atomic<std::uint64_t>> m_warningGeneration = std::make_shared<std::atomic<std::uint64_t>>(0);
     // A palette change has been reported to apply() and not yet passed on to the handler.
     mutable bool m_paletteChangedOwed = false;
     // Raised once the shutdown grace elapses. Synchronous hooks and m_hookRunner share it, so
