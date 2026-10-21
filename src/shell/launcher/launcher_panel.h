@@ -68,6 +68,8 @@ public:
   [[nodiscard]] PanelPlacement panelPlacement() const noexcept override;
 
 private:
+  friend class LauncherPanelTestAccess;
+
   enum ActiveCategoryType { All, Pinned, RecentlyUsed, Category };
   enum class ResultsTransition : std::uint8_t { None, NavigationForward, NavigationBackward };
 

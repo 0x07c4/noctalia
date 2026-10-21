@@ -1256,6 +1256,7 @@ if build_tests
     'kde_color_scheme',
     'keyboard_layout_label',
     'lane_selection_token',
+    'launcher_category_state',
     'location_service',
     'lockscreen_session_actions',
     'log',
