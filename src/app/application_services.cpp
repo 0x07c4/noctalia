@@ -1394,6 +1394,7 @@ void Application::initSystemBusServices() {
 
     try {
       m_bluetoothService = std::make_unique<BluetoothService>(*m_systemBus, m_upowerService.get());
+      m_bluetoothService->setConnectWhenEnabled(m_configService.config().bluetooth.connectWhenEnabled);
       auto refreshBluetoothUi = [this, shouldRefreshControlCenter]() {
         m_bar.refresh();
         if (shouldRefreshControlCenter()) {
@@ -1432,6 +1433,11 @@ void Application::initSystemBusServices() {
         m_bluetoothAgent.reset();
       }
     }
+    m_configService.addReloadCallback([this]() {
+      if (m_bluetoothService != nullptr) {
+        m_bluetoothService->setConnectWhenEnabled(m_configService.config().bluetooth.connectWhenEnabled);
+      }
+    });
 
     try {
       m_modemManagerService = std::make_unique<ModemManagerService>(*m_systemBus);

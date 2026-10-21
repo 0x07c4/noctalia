@@ -515,6 +515,13 @@ namespace noctalia::config::schema {
     return s;
   }
 
+  const Schema<BluetoothConfig>& bluetoothSchema() {
+    static const Schema<BluetoothConfig> s = {
+        field(&BluetoothConfig::connectWhenEnabled, "connect_when_enabled"),
+    };
+    return s;
+  }
+
   namespace {
     const Schema<ShortcutConfig>& shortcutSchema() {
       static const Schema<ShortcutConfig> s = {field(&ShortcutConfig::type, "type")};

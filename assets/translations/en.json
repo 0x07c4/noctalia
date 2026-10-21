@@ -1352,6 +1352,7 @@
         "background": "Background",
         "battery": "Battery",
         "behavior": "Behavior",
+        "bluetooth": "Bluetooth",
         "borders": "Borders",
         "brightness": "Brightness",
         "built-in": "Built-In",
@@ -2908,6 +2909,10 @@
         "audio-overdrive": {
           "description": "Allow volume above 100%",
           "label": "Audio Overdrive"
+        },
+        "bluetooth-connect-when-enabled": {
+          "description": "Connect paired, trusted devices when Bluetooth turns on, at startup, and after resume",
+          "label": "Connect Devices When Bluetooth Turns On"
         },
         "calendar": {
           "description": "Show events from your online calendar accounts",
