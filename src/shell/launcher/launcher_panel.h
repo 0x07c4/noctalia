@@ -110,6 +110,7 @@ private:
   void updateCategoryFilterModel(const std::vector<LauncherCategory>& categories);
   void rebuildCategoryFilter();
   void rebuildLauncherNavigation();
+  [[nodiscard]] ActiveCategoryType defaultCategoryType() const;
   void applyDefaultView();
   void updateCategorySelectionChrome();
   void updateLauncherOptionButtons();

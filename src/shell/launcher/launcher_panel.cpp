@@ -2794,6 +2794,10 @@ void LauncherPanel::updateCategoryFilterModel(const std::vector<LauncherCategory
     if (!categories.empty()) {
       m_categoryFilterSlots.push_back({Category, 0});
     }
+    const auto defaultSlot = std::ranges::find(m_categoryFilterSlots, defaultCategoryType(), &CategoryFilterSlot::type);
+    if (defaultSlot != m_categoryFilterSlots.end()) {
+      std::ranges::rotate(m_categoryFilterSlots.begin(), defaultSlot, defaultSlot + 1);
+    }
   } else {
     m_categoryFilterSlots.push_back({All, 0});
     if (m_hasRecentlyUsed) {
@@ -2952,31 +2956,29 @@ void LauncherPanel::rebuildLauncherNavigation() {
   updateCategorySelectionChrome();
 }
 
+LauncherPanel::ActiveCategoryType LauncherPanel::defaultCategoryType() const {
+  if (m_config != nullptr) {
+    switch (m_config->config().shell.launcher.defaultView) {
+    case ShellConfig::LauncherDefaultView::Recent:
+      return RecentlyUsed;
+    case ShellConfig::LauncherDefaultView::Pinned:
+      return Pinned;
+    case ShellConfig::LauncherDefaultView::All:
+      return All;
+    case ShellConfig::LauncherDefaultView::Categories:
+      return Category;
+    }
+  }
+  return All;
+}
+
 void LauncherPanel::applyDefaultView() {
   m_applyDefaultViewPending = false;
   if (!m_browserMode || !m_query.empty()) {
     return;
   }
 
-  ActiveCategoryType requested = All;
-  if (m_config != nullptr) {
-    switch (m_config->config().shell.launcher.defaultView) {
-    case ShellConfig::LauncherDefaultView::Recent:
-      requested = RecentlyUsed;
-      break;
-    case ShellConfig::LauncherDefaultView::Pinned:
-      requested = Pinned;
-      break;
-    case ShellConfig::LauncherDefaultView::All:
-      requested = All;
-      break;
-    case ShellConfig::LauncherDefaultView::Categories:
-      requested = Category;
-      break;
-    }
-  }
-
-  auto slot = std::ranges::find(m_categoryFilterSlots, requested, &CategoryFilterSlot::type);
+  auto slot = std::ranges::find(m_categoryFilterSlots, defaultCategoryType(), &CategoryFilterSlot::type);
   if (slot == m_categoryFilterSlots.end()) {
     slot = std::ranges::find(m_categoryFilterSlots, All, &CategoryFilterSlot::type);
   }
