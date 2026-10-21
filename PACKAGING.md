@@ -193,6 +193,7 @@ Each carries its own license file beside the code.
 | Fontconfig / fonts | Text rendering (users still need usable fonts installed) |
 | `git` | Plugin git sources / auto-update invoke `git` on `PATH` |
 | `upower` | Optional: battery / power devices |
+| `power-profiles-daemon` | Optional: power profile switching |
 | `ddcutil` | Optional: external monitor brightness |
 | Secret Service provider | Optional but recommended for credential / encrypted-state persistence (GNOME Keyring, KWallet, KeePassXC, ...). `libsecret` is only the client library; without a session provider those features cannot persist secrets. |
 | `sound-theme-freedesktop` | Shell sounds |
