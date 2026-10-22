@@ -269,7 +269,7 @@ namespace noctalia::cli {
   namespace msg {
     inline constexpr Command annotate{
         "annotate",
-        "Draw on the screen over running apps, or annotate an image file; press F or the Freeze button to capture the "
+        "Draw on the screen over running apps, or annotate an image file; press Z or the Freeze button to capture the "
         "background",
         {},
         {},
