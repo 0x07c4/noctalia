@@ -2164,7 +2164,7 @@ namespace settings {
     entries.push_back(makeEntry(
         SettingsSection::Screenshot, "screenshot-output", tr("settings.schema.shell.screenshot-save-to-file.label"),
         tr("settings.schema.shell.screenshot-save-to-file.description"), {"shell", "screenshot", "save_to_file"},
-        ToggleSetting{cfg.shell.screenshot.saveToFile}, "screenshot capture save png file"
+        ToggleSetting{cfg.shell.screenshot.saveToFile}, "screenshot capture save file"
     ));
     {
       auto e = makeEntry(
@@ -2193,6 +2193,22 @@ namespace settings {
           },
           "screenshot capture filename pattern strftime", true
       );
+      entries.push_back(std::move(e));
+    }
+    entries.push_back(makeEntry(
+        SettingsSection::Screenshot, "screenshot-output", tr("settings.schema.shell.screenshot-format.label"),
+        tr("settings.schema.shell.screenshot-format.description"), {"shell", "screenshot", "format"},
+        enumSelect(kScreenshotFormats, cfg.shell.screenshot.format),
+        "screenshot capture save file format png jpeg jpg webp jxl jpeg-xl"
+    ));
+    {
+      auto e = makeEntry(
+          SettingsSection::Screenshot, "screenshot-output", tr("settings.schema.shell.screenshot-quality.label"),
+          tr("settings.schema.shell.screenshot-quality.description"), {"shell", "screenshot", "quality"},
+          sliderFor(cfg.shell.screenshot.quality, noctalia::config::schema::kScreenshotQualityRange, true),
+          "screenshot capture save file quality compression lossless jpeg webp jxl"
+      );
+      e.visibleWhen = [](const Config& c) { return c.shell.screenshot.format != ScreenshotFormat::Png; };
       entries.push_back(std::move(e));
     }
     entries.push_back(makeEntry(

@@ -37,7 +37,7 @@ Direct project dependencies are listed below; transitive dependencies are owned 
 | Rendering | `EGL`, `OpenGL ES 2.0+`, `wayland-egl` (`libepoxy` fallback) |
 | Dynamic loading | `libdl` when provided separately by the platform |
 | Text | `cairo`, `cairo-ft`, `pango`, `pangocairo`, `pangoft2`, `harfbuzz`, `freetype2`, `fontconfig` |
-| Images | `Wuffs` (vendored), `stb_image_resize2`, `stb_image_write`, `libwebp`, `libjxl`, `libjxl_threads`, `librsvg` |
+| Images | `Wuffs` (vendored), `stb_image_resize2`, `stb_image_write`, `libwebp`, `libjxl`, `libjxl_threads`, `librsvg`, `libheif` (optional, loaded at runtime with `dlopen`) |
 | IPC and service runtime | `sdbus-c++`, `glib-2.0`, `gobject-2.0`, `gio-2.0` |
 | Audio | `libpipewire-0.3`, `wireplumber-0.5`, `libsndfile` |
 | Authentication | `PAM`, `polkit-agent-1`, `polkit-gobject-1` |

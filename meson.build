@@ -196,11 +196,11 @@ if not cc.has_header('stb/stb_image_write.h')
   error('stb/stb_image_write.h not found')
 endif
 
-# ── System: libwebp (WebP decode and thumbnail encode; demux for animations) ─
+# ── System: libwebp (WebP decode; thumbnail and screenshot encode; demux for animations) ─
 libwebp_dep       = dependency('libwebp', required: true)
 libwebpdemux_dep  = dependency('libwebpdemux', required: true)
 
-# ── System: libjxl (JPEG XL decode) ───────────────────────────────────────────
+# ── System: libjxl (JPEG XL decode and screenshot encode) ─────────────────────
 libjxl_dep          = dependency('libjxl', required: true)
 libjxl_threads_dep  = dependency('libjxl_threads', required: true)
 
@@ -562,6 +562,7 @@ _noctalia_sources = files(
   'src/render/core/stb_image_resize_impl.cpp',
   'src/render/core/thumbnail_service.cpp',
   'src/render/core/image_decoder.cpp',
+  'src/render/core/heif_library.cpp',
   'src/render/core/image_encoder.cpp',
   'src/render/core/image_orientation.cpp',
   'src/render/programs/glyph_program.cpp',

@@ -1092,6 +1092,21 @@ constexpr EnumOption<ScreenshotRegionModifier> kScreenshotRegionModifiers[] = {
     {ScreenshotRegionModifier::Shift, "shift", "settings.options.screenshot.region-modifier.shift"},
 };
 
+// File format for saved screenshots; clipboard copies and pipe commands always receive PNG.
+enum class ScreenshotFormat : std::uint8_t {
+  Png = 0,
+  Jpeg = 1,
+  Webp = 2,
+  Jxl = 3,
+};
+
+constexpr EnumOption<ScreenshotFormat> kScreenshotFormats[] = {
+    {ScreenshotFormat::Png, "png", "settings.options.screenshot.format.png"},
+    {ScreenshotFormat::Jpeg, "jpeg", "settings.options.screenshot.format.jpeg"},
+    {ScreenshotFormat::Webp, "webp", "settings.options.screenshot.format.webp"},
+    {ScreenshotFormat::Jxl, "jxl", "settings.options.screenshot.format.jxl"},
+};
+
 struct ShellConfig {
   struct AnimationConfig {
     bool enabled = true;
@@ -1257,6 +1272,8 @@ struct ShellConfig {
     std::string pipeCommand;
     std::string directory;       // empty = XDG Pictures directory
     std::string filenamePattern; // empty = screenshot_%Y%m%d_%H%M%S
+    ScreenshotFormat format = ScreenshotFormat::Png;
+    std::int32_t quality = 90; // 1..100; ignored for PNG, 100 = lossless WebP/JPEG XL
     ScreenshotRegionModifier regionModifier = ScreenshotRegionModifier::None;
     float regionBorderWidth = 2.0F;
     float regionDimOpacity = 0.65F;

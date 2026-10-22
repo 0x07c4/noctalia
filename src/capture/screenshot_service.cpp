@@ -8,6 +8,7 @@
 #include "compositors/compositor_platform.h"
 #include "config/config_service.h"
 #include "config/config_types.h"
+#include "config/schema/ranges.h"
 #include "core/deferred_call.h"
 #include "core/input/key_chord.h"
 #include "core/input/key_modifiers.h"
@@ -81,6 +82,46 @@ namespace {
       return 0;
     }
     return 0;
+  }
+
+  [[nodiscard]] std::string_view screenshotExtension(ScreenshotFormat format) {
+    switch (format) {
+    case ScreenshotFormat::Png:
+      return ".png";
+    case ScreenshotFormat::Jpeg:
+      return ".jpg";
+    case ScreenshotFormat::Webp:
+      return ".webp";
+    case ScreenshotFormat::Jxl:
+      return ".jxl";
+    }
+    return ".png";
+  }
+
+  [[nodiscard]] std::vector<std::uint8_t>
+  encodeScreenshotFile(const ScreencopyImage& image, ScreenshotFormat format, int quality, std::string* errorOut) {
+    switch (format) {
+    case ScreenshotFormat::Png:
+      return encodePng(image.rgba.data(), image.width, image.height, errorOut);
+    case ScreenshotFormat::Jpeg:
+      return encodeJpeg(image.rgba.data(), image.width, image.height, quality, errorOut);
+    case ScreenshotFormat::Webp:
+      return encodeWebp(image.rgba.data(), image.width, image.height, quality, errorOut);
+    case ScreenshotFormat::Jxl:
+      return encodeJxl(image.rgba.data(), image.width, image.height, quality, errorOut);
+    }
+    return {};
+  }
+
+  [[nodiscard]] std::optional<std::int32_t> parseScreenshotQuality(std::string_view text) {
+    std::int32_t value = 0;
+    const auto* end = text.data() + text.size();
+    const auto result = std::from_chars(text.data(), end, value);
+    const auto& range = noctalia::config::schema::kScreenshotQualityRange;
+    if (result.ec != std::errc{} || result.ptr != end || value < *range.min || value > *range.max) {
+      return std::nullopt;
+    }
+    return value;
   }
 
   [[nodiscard]] std::optional<capture::AnnotationColor> parseAnnotationColor(std::string_view text) {
@@ -707,6 +748,22 @@ std::expected<ScreenshotIpcRequest, std::string> parseScreenshotIpcRequest(
     const std::string_view directory = parsed->value("--directory");
     base.directory = directory.empty() ? std::string() : FileUtils::resolvePath(directory, callerCwd).string();
   }
+  if (parsed->has("--format")) {
+    const std::string_view format = parsed->value("--format");
+    const auto value = enumFromKey(kScreenshotFormats, format);
+    if (!value) {
+      return std::unexpected(std::format("error: invalid value '{}' for --format\n", format));
+    }
+    base.format = *value;
+  }
+  if (parsed->has("--quality")) {
+    const std::string_view quality = parsed->value("--quality");
+    const auto value = parseScreenshotQuality(quality);
+    if (!value) {
+      return std::unexpected(std::format("error: invalid value '{}' for --quality (expected 1 to 100)\n", quality));
+    }
+    base.quality = *value;
+  }
 
   return ScreenshotIpcRequest{.options = std::move(base), .target = parsed->joinedRemaining};
 }
@@ -815,6 +872,8 @@ ScreenshotService::OutputOptions ScreenshotService::outputOptionsFromConfig(cons
   options.pipeCommand = screenshot.pipeCommand;
   options.directory = screenshot.directory;
   options.filenamePattern = screenshot.filenamePattern;
+  options.format = screenshot.format;
+  options.quality = screenshot.quality;
   return options;
 }
 
@@ -2007,12 +2066,20 @@ void ScreenshotService::deliverCaptureResult(
 bool ScreenshotService::finishDelivery(
     ScreencopyImage image, const OutputOptions& options, std::optional<std::filesystem::path> destPath
 ) {
+  const bool saveFile = options.saveToFile && destPath.has_value();
+  const bool pipe = options.pipeToCommand && !options.pipeCommand.empty();
+  // Clipboard and pipe consumers always receive PNG; only the saved file uses the configured format.
+  const bool needsPng = options.copyToClipboard || pipe || (saveFile && options.format == ScreenshotFormat::Png);
+
   std::string encodeError;
-  std::vector<std::uint8_t> png = encodePng(image.rgba.data(), image.width, image.height, &encodeError);
-  if (png.empty()) {
-    kLog.warn("screenshot encode failed: {}", encodeError);
-    notifyError(encodeError.empty() ? "Failed to encode screenshot" : encodeError);
-    return false;
+  std::vector<std::uint8_t> png;
+  if (needsPng) {
+    png = encodePng(image.rgba.data(), image.width, image.height, &encodeError);
+    if (png.empty()) {
+      kLog.warn("screenshot encode failed: {}", encodeError);
+      notifyError(encodeError.empty() ? "Failed to encode screenshot" : encodeError);
+      return false;
+    }
   }
 
   bool delivered = false;
@@ -2026,15 +2093,25 @@ bool ScreenshotService::finishDelivery(
     }
   }
 
-  if (options.saveToFile && destPath.has_value()) {
-    std::ofstream out(*destPath, std::ios::binary | std::ios::trunc);
-    out.write(reinterpret_cast<const char*>(png.data()), static_cast<std::streamsize>(png.size()));
-    if (!out) {
-      kLog.warn("screenshot write failed: {}", destPath->string());
-      failureMessage = "Failed to save screenshot";
+  if (saveFile) {
+    std::vector<std::uint8_t> encoded;
+    if (options.format != ScreenshotFormat::Png) {
+      encoded = encodeScreenshotFile(image, options.format, options.quality, &encodeError);
+    }
+    const std::vector<std::uint8_t>& fileBytes = options.format == ScreenshotFormat::Png ? png : encoded;
+    if (fileBytes.empty()) {
+      kLog.warn("screenshot encode failed: {}", encodeError);
+      failureMessage = encodeError.empty() ? "Failed to encode screenshot" : encodeError;
     } else {
-      notifySaved(*destPath);
-      delivered = true;
+      std::ofstream out(*destPath, std::ios::binary | std::ios::trunc);
+      out.write(reinterpret_cast<const char*>(fileBytes.data()), static_cast<std::streamsize>(fileBytes.size()));
+      if (!out) {
+        kLog.warn("screenshot write failed: {}", destPath->string());
+        failureMessage = "Failed to save screenshot";
+      } else {
+        notifySaved(*destPath);
+        delivered = true;
+      }
     }
   }
 
@@ -2054,8 +2131,8 @@ bool ScreenshotService::finishDelivery(
     }
   }
 
-  if (options.pipeToCommand && !options.pipeCommand.empty()) {
-    pipePngToCommandAsync(options.pipeCommand, png, destPath);
+  if (pipe) {
+    pipePngToCommandAsync(options.pipeCommand, std::move(png), destPath);
     delivered = true;
   }
 
@@ -2090,8 +2167,9 @@ std::filesystem::path ScreenshotService::outputDirectory(const OutputOptions& op
 std::filesystem::path
 ScreenshotService::makeScreenshotPath(const OutputOptions& options, const std::string& labelBase, int suffix) const {
   const auto dir = outputDirectory(options);
-  const std::string stem = formatFilenameStem(options.filenamePattern, labelBase, suffix);
-  return dir / (stem + ".png");
+  std::string filename = formatFilenameStem(options.filenamePattern, labelBase, suffix);
+  filename.append(screenshotExtension(options.format));
+  return dir / filename;
 }
 
 void ScreenshotService::notifySaved(const std::filesystem::path& path) {

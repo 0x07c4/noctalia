@@ -40,6 +40,7 @@ namespace noctalia::config::schema {
 
   // Screenshot.
   inline constexpr Range<float> kScreenshotRegionBorderWidthRange{0.0F, 20.0F, 0.5F};
+  inline constexpr Range<std::int64_t> kScreenshotQualityRange{1, 100, 1};
 
   // Battery / wallpaper.
   inline constexpr Range<std::int64_t> kBatteryWarningThresholdRange{0, 100, 1};

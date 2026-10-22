@@ -572,6 +572,8 @@ location = "https://example.invalid/bad"
     c.shell.screenshot.regionDimOpacity = 0.8F;
     c.shell.screenshot.showRegionHint = false;
     c.shell.screenshot.showRegionDimensions = false;
+    c.shell.screenshot.format = ScreenshotFormat::Webp;
+    c.shell.screenshot.quality = 75;
     c.shell.session.actions = {
         SessionPanelActionConfig{
             "lock",

@@ -4,6 +4,7 @@
 #include "capture/screenshot_capture.h"
 #include "capture/screenshot_region_overlay.h"
 #include "capture/toplevel_thumbnail_capture.h"
+#include "config/config_types.h"
 
 #include <cstdint>
 #include <expected>
@@ -19,7 +20,6 @@ class CompositorPlatform;
 class ConfigService;
 class IpcService;
 class NotificationManager;
-struct Config;
 class RenderContext;
 class WaylandConnection;
 class SoundPlayer;
@@ -48,6 +48,8 @@ public:
     std::string pipeCommand;
     std::string directory;
     std::string filenamePattern;
+    ScreenshotFormat format = ScreenshotFormat::Png;
+    std::int32_t quality = 90;
 
     bool operator==(const OutputOptions&) const = default;
   };

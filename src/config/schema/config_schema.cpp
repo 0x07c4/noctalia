@@ -1564,6 +1564,8 @@ namespace noctalia::config::schema {
           field(&ShellConfig::ScreenshotConfig::pipeCommand, "pipe_command"),
           field(&ShellConfig::ScreenshotConfig::directory, "directory"),
           field(&ShellConfig::ScreenshotConfig::filenamePattern, "filename_pattern"),
+          enumField(&ShellConfig::ScreenshotConfig::format, "format", kScreenshotFormats),
+          field(&ShellConfig::ScreenshotConfig::quality, "quality", kScreenshotQualityRange),
       };
       return s;
     }

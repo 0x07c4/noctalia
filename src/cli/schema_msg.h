@@ -271,6 +271,7 @@ namespace noctalia::cli {
   inline constexpr std::array kMsgWorkspaceSwitchPositionals{
       Positional{"direction", {}, kMsgWorkspaceSwitchDirectionChoices, true, false, false},
   };
+  inline constexpr std::array<std::string_view, 4> kMsgScreenshotFormatChoices{"png", "jpeg", "webp", "jxl"};
   inline constexpr std::array kMsgScreenshotFlags{
       Flag{"--save-to-file", {}, {}, "Set save_to_file = true for this call", {}, {}, false, false},
       Flag{"--no-save-to-file", {}, {}, "Set save_to_file = false for this call", {}, {}, false, false},
@@ -324,6 +325,8 @@ namespace noctalia::cli {
           false
       },
       Flag{"--filename-pattern", {}, "<pattern>", "Set filename_pattern for this call", {}, {}, false, false},
+      Flag{"--format", {}, "<format>", "Set format for this call", kMsgScreenshotFormatChoices, {}, false, false},
+      Flag{"--quality", {}, "<1-100>", "Set quality for this call", {}, {}, false, false},
   };
 
   namespace msg {
