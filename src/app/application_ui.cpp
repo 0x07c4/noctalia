@@ -370,6 +370,8 @@ void Application::initLockScreenAndSession() {
         m_hookManager.fire(HookKind::SessionUnlocked);
         releaseSleepDelayInhibitIfPending();
         requestAllSurfacesRedraw();
+        // The bar skipped ticks while locked; refresh it now rather than at the next minute.
+        DeferredCall::callLater([this]() { m_timeService.forceTick(); });
         if (m_logindService != nullptr) {
           m_logindService->setSessionLockedHint(false);
         }
@@ -1141,7 +1143,7 @@ void Application::initWidgetControllersAndCallbacks() {
       "shell-language-direction"
   );
 
-  m_timeService.setTickSecondCallback([this]() {
+  m_timeService.setTickCallback([this]() {
     m_wallpaper.onSecondTick();
     if (m_lockScreen.isActive()) {
       m_lockscreenWidgetsController.onSecondTick();
@@ -1150,12 +1152,10 @@ void Application::initWidgetControllersAndCallbacks() {
       m_desktopWidgetsController.onSecondTick();
       m_lockscreenWidgetsController.onSecondTick();
       m_settingsWindow.onSecondTick();
-      if (m_configService.config().osd.kinds.keyboardLayout) {
-        m_keyboardLayoutOsd.onLayoutChanged(m_compositorPlatform, m_configService.config());
-      }
     }
-    m_idleManager.onSecondTick();
   });
+  m_timeService.setPrecisionProvider([this]() { return timePrecisionNeeded(); });
+  m_timeService.setDeadlineProvider([this]() { return m_wallpaper.nextAutomationDeadline(); });
 
   if (m_pipewireService != nullptr) {
     m_audioOsd.suppressFor(std::chrono::milliseconds(2000));
@@ -1196,4 +1196,18 @@ void Application::initWidgetControllersAndCallbacks() {
   // never occluded by shell chrome on their shared layer.
   m_screenCorners.initialize(m_wayland, &m_configService, &m_renderContext);
   m_hotCorners.initialize(m_wayland, &m_configService, &m_renderContext);
+}
+
+TimeService::Precision Application::timePrecisionNeeded() const {
+  // Only a visible clock that renders seconds needs the finer boundary. The
+  // bar, desktop, and lockscreen hosts each report only their live widgets.
+  if (m_bar.wantsSecondTicks()
+      || m_desktopWidgetsController.wantsSecondTicks()
+      || m_lockscreenWidgetsController.wantsSecondTicks()
+      || m_settingsWindow.wantsSecondTicks()) {
+    return TimeService::Precision::Second;
+  }
+  // Minute is the idle floor: it settles minute-aligned clocks. Wallpaper
+  // automation wakes through its own deadline instead.
+  return TimeService::Precision::Minute;
 }

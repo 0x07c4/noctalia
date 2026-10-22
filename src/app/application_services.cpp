@@ -1045,6 +1045,7 @@ void Application::initAuxServicesAndHooks() {
 
   m_themeService.setChangeCallback([this]() {
     requestAllSurfacesRedraw();
+    m_bar.refresh();
     m_lockScreen.onThemeChanged();
     m_trayMenu.onThemeChanged();
     m_backdrop.onThemeChanged();
@@ -1217,6 +1218,8 @@ void Application::initSystemBusServices() {
             });
           }
           requestAllSurfacesRedraw();
+          // The time poll deadline is monotonic and stalls across suspend; refresh clocks now.
+          DeferredCall::callLater([this]() { m_timeService.forceTick(); });
         });
         kLog.info("logind sleep monitor active");
         m_idleInhibitor.setLogindService(m_logindService.get());

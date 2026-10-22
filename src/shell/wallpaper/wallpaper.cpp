@@ -609,6 +609,25 @@ void Wallpaper::onSecondTick() {
   runAutomation(secondStamp);
 }
 
+std::optional<std::chrono::system_clock::time_point> Wallpaper::nextAutomationDeadline() const {
+  if (m_config == nullptr || !m_config->config().wallpaper.enabled) {
+    return std::nullopt;
+  }
+  const auto& automation = m_config->config().wallpaper.automation;
+  if (!automation.enabled || m_instances.empty() || !automationAllowed()) {
+    return std::nullopt;
+  }
+
+  using namespace std::chrono;
+  // No switch yet: runAutomation() rotates on the very next tick.
+  if (m_lastAutomationSwitchSecond < 0) {
+    return system_clock::now();
+  }
+  return system_clock::time_point{
+      seconds{m_lastAutomationSwitchSecond + static_cast<std::int64_t>(automation.intervalSeconds)}
+  };
+}
+
 bool Wallpaper::isConnectorKnown(std::string_view connector) const {
   if (m_wayland == nullptr) {
     return false;

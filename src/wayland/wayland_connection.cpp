@@ -967,6 +967,10 @@ void WaylandConnection::setLockKeysChangeCallback(WaylandSeat::LockKeysChangeCal
   m_seatHandler.setLockKeysChangeCallback(std::move(callback));
 }
 
+void WaylandConnection::setKeyboardLayoutChangeCallback(WaylandSeat::KeyboardLayoutChangeCallback callback) {
+  m_seatHandler.setKeyboardLayoutChangeCallback(std::move(callback));
+}
+
 void WaylandConnection::setClipboardService(ClipboardService* clipboardService) {
   m_clipboardService = clipboardService;
   bindClipboardService();

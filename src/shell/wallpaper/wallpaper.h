@@ -6,9 +6,11 @@
 #include "shell/wallpaper/wallpaper_shuffle_state.h"
 #include "ui/signal.h"
 
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -49,6 +51,9 @@ public:
   void setOutputExternallyManaged(const std::string& connector, bool managed);
   [[nodiscard]] std::vector<WallpaperChange> onStateChange();
   void onSecondTick();
+  // When automation next needs a tick to rotate, or nullopt while it cannot run.
+  // Lets the time source wake for the rotation interval instead of polling.
+  [[nodiscard]] std::optional<std::chrono::system_clock::time_point> nextAutomationDeadline() const;
   void onGpuResourcesInvalidated();
   void registerIpc(IpcService& ipc);
   // Apply and persist a wallpaper image. nullopt connector targets all connected

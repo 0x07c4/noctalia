@@ -1435,6 +1435,12 @@ namespace {
     return owner != nullptr && !owner->showsTooltip() ? nullptr : hoveredArea;
   }
 
+  bool widgetsWantSecondTicks(const std::vector<std::unique_ptr<Widget>>& widgets) {
+    return std::ranges::any_of(widgets, [](const auto& widget) {
+      return widget != nullptr && widget->wantsSecondTicks();
+    });
+  }
+
 } // namespace
 
 Bar::Bar() = default;
@@ -1524,10 +1530,19 @@ BarServices Bar::services() const {
 }
 
 void Bar::onSecondTick() {
+  // Without a widget that renders seconds, a full bar update once a minute is
+  // enough, so skip the other 59 ticks instead of re-laying out every surface.
+  const auto minute = std::chrono::floor<std::chrono::minutes>(std::chrono::system_clock::now());
+  const bool minuteChanged = minute != m_lastTickMinute;
+  m_lastTickMinute = minute;
   for (auto& inst : m_instances) {
-    if (inst->surface != nullptr) {
-      inst->surface->requestUpdate();
+    if (inst->surface == nullptr) {
+      continue;
     }
+    if (!minuteChanged && !instanceWantsSecondTicks(*inst)) {
+      continue;
+    }
+    inst->surface->requestUpdate();
   }
 }
 
@@ -3089,6 +3104,22 @@ bool Bar::instanceNeedsFrameTick(const BarInstance& instance) {
   return widgetsNeedFrameTick(instance.startWidgets)
       || widgetsNeedFrameTick(instance.centerWidgets)
       || widgetsNeedFrameTick(instance.endWidgets);
+}
+
+bool Bar::widgetsWantSecondTicks(const std::vector<std::unique_ptr<Widget>>& widgets) {
+  return ::widgetsWantSecondTicks(widgets);
+}
+
+bool Bar::instanceWantsSecondTicks(const BarInstance& instance) {
+  return widgetsWantSecondTicks(instance.startWidgets)
+      || widgetsWantSecondTicks(instance.centerWidgets)
+      || widgetsWantSecondTicks(instance.endWidgets);
+}
+
+bool Bar::wantsSecondTicks() const {
+  return std::ranges::any_of(m_instances, [](const auto& instance) {
+    return instance != nullptr && instanceWantsSecondTicks(*instance);
+  });
 }
 
 void Bar::applyBackgroundPalette(BarInstance& instance) {
