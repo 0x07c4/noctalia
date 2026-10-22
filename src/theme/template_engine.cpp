@@ -1656,13 +1656,16 @@ namespace noctalia::theme {
           return;
         }
 
+        HookRunner::FailureCallback onFailure;
+        if (renderOptions.hookWarningCallback) {
+          onFailure = [callback = renderOptions.hookWarningCallback, name = entry.name](std::string message) {
+            const std::string diagnostic = StringUtils::trim(message);
+            if (diagnostic.starts_with("Warning:")) {
+              callback(std::format("{}: {}", name, diagnostic));
+            }
+          };
+        }
         if (async && renderOptions.hookRunner != nullptr) {
-          HookRunner::FailureCallback onFailure;
-          if (renderOptions.hookWarningCallback) {
-            onFailure = [callback = renderOptions.hookWarningCallback, name = entry.name](std::string message) {
-              callback(std::format("{}: {}", name, StringUtils::trim(message)));
-            };
-          }
           renderOptions.hookRunner->enqueue(hookRendered.text, renderOptions.generation, std::move(onFailure));
         } else {
           // A started hook is allowed to finish (a supersede waits it out; killing
@@ -1676,8 +1679,8 @@ namespace noctalia::theme {
                 ? std::format("hook failed with exit code {}", result.exitCode)
                 : StringUtils::trim(result.err);
             kLog.warn("hook for template {} failed: {}", entry.name, message);
-            if (renderOptions.hookWarningCallback) {
-              renderOptions.hookWarningCallback(std::format("{}: {}", entry.name, message));
+            if (onFailure) {
+              onFailure(message);
             }
           }
         }

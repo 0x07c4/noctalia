@@ -75,7 +75,7 @@ namespace {
     const auto release = fixture / "release";
     const auto failed = fixture / "failed";
     const auto hook = fixture / "hook.sh";
-    const std::string diagnostic = "Missing compositor config; add include manually";
+    const std::string diagnostic = "Warning: Missing compositor config; add include manually";
     writeFile(
         hook,
         "if [ -e '"
@@ -192,6 +192,17 @@ namespace {
     }
     TEST_CHECK(warnings.size() == 3);
     waitFor([&]() { return applications == 7; });
+    TEST_CHECK(warnings.size() == 3);
+
+    // Ordinary hook failures stay in the log instead of becoming setup banners.
+    writeFile(hook, "printf '%s\\n' 'ordinary hook failure' >&2\nexit 1\n");
+    apply();
+    waitFor([&]() { return applications == 8; });
+    TEST_CHECK(warnings.size() == 3);
+
+    writeFile(hook, "exit 1\n");
+    apply();
+    waitFor([&]() { return applications == 9; });
     TEST_CHECK(warnings.size() == 3);
   }
 
