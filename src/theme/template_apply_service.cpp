@@ -18,6 +18,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <filesystem>
+#include <format>
 #include <iterator>
 #include <mutex>
 #include <set>
@@ -152,15 +153,21 @@ namespace noctalia::theme {
       return root;
     }
 
-    // state.toml owner/key holding the built-in template ids Noctalia has applied.
+    // state.toml owner holding the template ids Noctalia has applied, one key per source.
     constexpr std::string_view kStateOwner = "theme_templates";
-    constexpr std::string_view kAppliedBuiltinIdsKey = "applied_builtin_ids";
 
     std::set<std::string> enabledBuiltinIds(const ThemeConfig::TemplatesConfig& templates) {
       if (!templates.enableBuiltinTemplates) {
         return {};
       }
       return {templates.builtinIds.begin(), templates.builtinIds.end()};
+    }
+
+    std::set<std::string> enabledCommunityIds(const ThemeConfig::TemplatesConfig& templates) {
+      if (!templates.enableCommunityTemplates) {
+        return {};
+      }
+      return {templates.communityIds.begin(), templates.communityIds.end()};
     }
 
   } // namespace
@@ -251,7 +258,8 @@ namespace noctalia::theme {
           }
         }
       } else {
-        request.undoBuiltinIds = syncAppliedBuiltinIds(request.templates);
+        request.undoBuiltinIds = syncAppliedIds(m_builtinIds, enabledBuiltinIds(request.templates));
+        request.undoCommunityIds = syncAppliedIds(m_communityIds, enabledCommunityIds(request.templates));
         request.generation = ++m_nextGeneration;
         m_warningGeneration->store(request.generation);
         m_lastAppliedRequest = request;
@@ -347,8 +355,14 @@ namespace noctalia::theme {
 
     // The undo hooks ran synchronously; drop their ids from state.toml so the next
     // application does not repeat them. State belongs to the main thread.
-    if (std::vector<std::string> undone = undoBuiltinTemplates(request); !undone.empty()) {
-      DeferredCall::callLater([this, undone = std::move(undone)]() { forgetAppliedBuiltinIds(undone); });
+    std::vector<std::string> undoneBuiltin = undoBuiltinTemplates(request);
+    std::vector<std::string> undoneCommunity = undoCommunityTemplates(request);
+    if (!undoneBuiltin.empty() || !undoneCommunity.empty()) {
+      DeferredCall::callLater([this, undoneBuiltin = std::move(undoneBuiltin),
+                               undoneCommunity = std::move(undoneCommunity)]() {
+        forgetAppliedIds(m_builtinIds, undoneBuiltin);
+        forgetAppliedIds(m_communityIds, undoneCommunity);
+      });
     }
 
     if (request.templates.enableBuiltinTemplates
@@ -399,45 +413,77 @@ namespace noctalia::theme {
   }
 
   std::vector<std::string>
-  TemplateApplyService::syncAppliedBuiltinIds(const ThemeConfig::TemplatesConfig& templates) const {
-    if (!m_appliedBuiltinIdsLoaded) {
-      if (const auto encoded = m_config.stateString(kStateOwner, kAppliedBuiltinIdsKey)) {
+  TemplateApplyService::syncAppliedIds(AppliedTemplateIds& ids, const std::set<std::string>& enabled) const {
+    if (!ids.loaded) {
+      if (const auto encoded = m_config.stateString(kStateOwner, ids.stateKey)) {
         for (std::string& id : StringUtils::splitWhitespace(*encoded)) {
-          m_appliedBuiltinIds.emplace(std::move(id));
+          ids.applied.emplace(std::move(id));
         }
       }
-      m_appliedBuiltinIdsLoaded = true;
+      ids.loaded = true;
     }
-
-    const std::set<std::string> enabled = enabledBuiltinIds(templates);
 
     // Everything applied or still owing an undo, minus what is enabled again now. Owed ids
     // survive a request that never ran (coalesced away, superseded) and a restart.
     std::set<std::string> owed;
-    m_owedUndoBuiltinIds.insert(m_appliedBuiltinIds.begin(), m_appliedBuiltinIds.end());
-    std::ranges::set_difference(m_owedUndoBuiltinIds, enabled, std::inserter(owed, owed.end()));
-    m_owedUndoBuiltinIds = std::move(owed);
+    ids.owed.insert(ids.applied.begin(), ids.applied.end());
+    std::ranges::set_difference(ids.owed, enabled, std::inserter(owed, owed.end()));
+    ids.owed = std::move(owed);
 
-    m_appliedBuiltinIds = enabled;
-    m_appliedBuiltinIds.insert(m_owedUndoBuiltinIds.begin(), m_owedUndoBuiltinIds.end());
-    persistAppliedBuiltinIds();
+    ids.applied = enabled;
+    ids.applied.insert(ids.owed.begin(), ids.owed.end());
+    persistAppliedIds(ids);
 
-    return {m_owedUndoBuiltinIds.begin(), m_owedUndoBuiltinIds.end()};
+    return {ids.owed.begin(), ids.owed.end()};
   }
 
-  void TemplateApplyService::forgetAppliedBuiltinIds(const std::vector<std::string>& ids) const {
-    for (const auto& id : ids) {
-      m_owedUndoBuiltinIds.erase(id);
-      m_appliedBuiltinIds.erase(id);
+  void TemplateApplyService::forgetAppliedIds(AppliedTemplateIds& ids, const std::vector<std::string>& resolved) const {
+    if (resolved.empty()) {
+      return;
     }
-    persistAppliedBuiltinIds();
+    for (const auto& id : resolved) {
+      ids.owed.erase(id);
+      ids.applied.erase(id);
+    }
+    persistAppliedIds(ids);
   }
 
-  void TemplateApplyService::persistAppliedBuiltinIds() const {
+  void TemplateApplyService::persistAppliedIds(const AppliedTemplateIds& ids) const {
     (void)m_config.setStateString(
-        kStateOwner, kAppliedBuiltinIdsKey,
-        StringUtils::join({m_appliedBuiltinIds.begin(), m_appliedBuiltinIds.end()}, " ")
+        kStateOwner, ids.stateKey, StringUtils::join({ids.applied.begin(), ids.applied.end()}, " ")
     );
+  }
+
+  bool TemplateApplyService::runUndoHook(
+      const ApplyRequest& request, const std::filesystem::path& configPath, std::string_view hook,
+      std::string_view label
+  ) const {
+    TemplateEngine::Options hookOptions;
+    hookOptions.defaultMode = request.defaultMode;
+    hookOptions.imagePath = request.imagePath;
+    hookOptions.schemeType = request.schemeType;
+    hookOptions.verbose = true;
+    hookOptions.configTable = request.configTable;
+    hookOptions.configDir = configPath.parent_path().string();
+    hookOptions.configFile = configPath.string();
+    TemplateEngine hookEngine(TemplateEngine::makeThemeData(request.palette), std::move(hookOptions));
+
+    const RenderResult rendered = hookEngine.render(std::string(hook));
+    if (rendered.errorCount != 0 || rendered.text.empty()) {
+      // Retrying cannot fix a hook that does not render.
+      kLog.warn("failed to render undo hook for {}", label);
+      return true;
+    }
+    // A failed hook stays owed: the next application retries it. That includes one
+    // terminated by the shutdown grace, so cancelling it here is safe.
+    process::RunOptions runOptions;
+    runOptions.cancel = m_hookCancel;
+    const process::RunResult result = process::runSync(rendered.text, runOptions);
+    if (!result) {
+      kLog.warn("undo hook for {} failed with exit code {}: {}", label, result.exitCode, result.err);
+      return false;
+    }
+    return true;
   }
 
   std::vector<std::string> TemplateApplyService::undoBuiltinTemplates(const ApplyRequest& request) const {
@@ -459,15 +505,6 @@ namespace noctalia::theme {
       return {};
     }
 
-    TemplateEngine::Options hookOptions;
-    hookOptions.defaultMode = request.defaultMode;
-    hookOptions.imagePath = request.imagePath;
-    hookOptions.schemeType = request.schemeType;
-    hookOptions.verbose = true;
-    hookOptions.configTable = request.configTable;
-    hookOptions.configDir = configPath.parent_path().string();
-    hookOptions.configFile = configPath.string();
-    TemplateEngine hookEngine(TemplateEngine::makeThemeData(request.palette), std::move(hookOptions));
     std::vector<std::string> resolved;
     for (const auto& id : request.undoBuiltinIds) {
       if (requestSuperseded(request.generation)) {
@@ -480,27 +517,61 @@ namespace noctalia::theme {
         continue;
       }
       const auto hook = entry->get_as<std::string>("undo_hook");
-      if (hook == nullptr) {
+      if (hook == nullptr || runUndoHook(request, configPath, hook->get(), std::format("built-in template '{}'", id))) {
+        resolved.push_back(id);
+      }
+    }
+    return resolved;
+  }
+
+  std::vector<std::string> TemplateApplyService::undoCommunityTemplates(const ApplyRequest& request) const {
+    std::vector<std::string> resolved;
+    for (const auto& id : request.undoCommunityIds) {
+      if (requestSuperseded(request.generation)) {
+        return resolved;
+      }
+      if (!isSafeCommunityTemplateId(id)) {
         resolved.push_back(id);
         continue;
       }
 
-      const RenderResult rendered = hookEngine.render(hook->get());
-      if (rendered.errorCount != 0 || rendered.text.empty()) {
-        kLog.warn("failed to render undo hook for built-in template '{}'", id);
+      // The cache keeps a disabled template's files, so its undo hook is still on disk.
+      const std::filesystem::path configPath = communityTemplateConfigPath(id);
+      if (!std::filesystem::exists(configPath)) {
+        kLog.warn("cannot undo community template '{}': {} is not cached", id, configPath.string());
         resolved.push_back(id);
         continue;
       }
-      // A failed hook stays owed: the next application retries it. That includes one
-      // terminated by the shutdown grace, so cancelling it here is safe.
-      process::RunOptions runOptions;
-      runOptions.cancel = m_hookCancel;
-      const process::RunResult result = process::runSync(rendered.text, runOptions);
-      if (!result) {
-        kLog.warn("undo hook for built-in template '{}' failed with exit code {}: {}", id, result.exitCode, result.err);
+      toml::table root;
+      try {
+        root = toml::parse_file(configPath.string());
+      } catch (const toml::parse_error&) {
+        kLog.warn("failed to parse community template '{}' for undo hooks from {}", id, configPath.string());
+        resolved.push_back(id);
         continue;
       }
-      resolved.push_back(id);
+      const toml::table* templates = root["templates"].as_table();
+      if (templates == nullptr) {
+        resolved.push_back(id);
+        continue;
+      }
+
+      // One community template can define several entries; it stays owed until every undo
+      // hook succeeds, so those hooks must be safe to run again.
+      bool done = true;
+      for (const auto& [entryId, node] : *templates) {
+        const toml::table* entry = node.as_table();
+        const auto* hook = entry != nullptr ? entry->get_as<std::string>("undo_hook") : nullptr;
+        if (hook != nullptr
+            && !runUndoHook(
+                request, configPath, hook->get(), std::format("community template '{}.{}'", id, entryId.str())
+            )) {
+          done = false;
+        }
+      }
+      if (done) {
+        resolved.push_back(id);
+      }
     }
     return resolved;
   }
