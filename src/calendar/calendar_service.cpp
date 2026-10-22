@@ -590,7 +590,14 @@ void CalendarService::startRefresh() {
 
 void CalendarService::accountDone(const std::string& accountId, bool ok, std::vector<CalendarEvent> events) {
   if (ok) {
+    kLog.debug("calendar account {} refreshed: {} event(s)", accountId, events.size());
     m_eventsByAccount[accountId] = std::move(events);
+  } else {
+    const auto it = m_eventsByAccount.find(accountId);
+    kLog.warn(
+        "calendar account {} refresh failed; keeping {} previously loaded event(s)", accountId,
+        it == m_eventsByAccount.end() ? 0 : it->second.size()
+    );
   }
   if (m_pendingAccounts > 0) {
     --m_pendingAccounts;
@@ -708,13 +715,15 @@ void CalendarService::fetchCalDav(const CalendarConfig::Account& account) {
 
                 m_caldav.fetchEvents(
                     caldav, now - kWindowBefore, now + kWindowAfter, allowRedirectAuth,
-                    [ctx](bool ok, std::vector<CalendarEvent> events) {
+                    [ctx, calendarName = collection.name](bool ok, std::vector<CalendarEvent> events) {
                       if (ok) {
                         ctx->anyOk = true;
                         ctx->events.insert(
                             ctx->events.end(), std::make_move_iterator(events.begin()),
                             std::make_move_iterator(events.end())
                         );
+                      } else {
+                        kLog.warn("caldav account {}: calendar '{}' failed to load", ctx->accountId, calendarName);
                       }
                       if (ctx->pending > 0) {
                         --ctx->pending;
