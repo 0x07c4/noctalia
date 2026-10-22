@@ -1291,6 +1291,7 @@ if build_tests
     'process',
     'scheme',
     'screenshot_region_badge',
+    'screenshot_ipc_request',
     'scrollbar_geometry',
     'secret_store',
     'security_primitives',

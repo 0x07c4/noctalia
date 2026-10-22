@@ -27,6 +27,10 @@ struct KeyboardEvent;
 struct PointerEvent;
 struct wl_output;
 
+namespace noctalia::cli {
+  struct Command;
+} // namespace noctalia::cli
+
 class ScreenshotService {
 public:
   struct OutputOptions {
@@ -38,9 +42,14 @@ public:
     bool rememberLastRegion = false;
     bool showCursor = false;
     bool annotate = false;
+    bool skipAnnotateOnCopySave = false;
+    bool closeOnCopy = true;
+    bool closeOnSave = true;
     std::string pipeCommand;
     std::string directory;
     std::string filenamePattern;
+
+    bool operator==(const OutputOptions&) const = default;
   };
 
   ScreenshotService(
@@ -213,3 +222,15 @@ private:
   bool m_freezeCaptureActive = false;
   SoundPlayer* m_soundPlayer = nullptr;
 };
+
+struct ScreenshotIpcRequest {
+  ScreenshotService::OutputOptions options;
+  std::string target; // screenshot-fullscreen target / annotate path; empty when omitted
+};
+
+// Applies `noctalia msg <command>` flags on top of `base` (the [shell.screenshot] snapshot).
+// The error string is the complete IPC response: an "error: ...\n" line, or the help text.
+[[nodiscard]] std::expected<ScreenshotIpcRequest, std::string> parseScreenshotIpcRequest(
+    const noctalia::cli::Command& command, std::string_view args, ScreenshotService::OutputOptions base,
+    std::optional<std::string_view> callerCwd
+);
