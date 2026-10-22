@@ -45,7 +45,6 @@
       "cursor-not-captured": "无法切换鼠标指针：合成器不支持单独捕获鼠标指针",
       "done": "完成（Enter）",
       "fill-off": "填充：关闭",
-      "fill-on": "填充：开启",
       "freeze": "冻结画面（F）",
       "move-toolbar": "拖动工具栏",
       "redo": "重做（Ctrl+Shift+Z）",

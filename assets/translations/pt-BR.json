@@ -45,7 +45,6 @@
       "cursor-not-captured": "Alternação de ponteiro não disponível: este compositor não suporta captura separada de cursor.",
       "done": "Aplicar as configurações da captura de tela (Enter)",
       "fill-off": "Preenchimento da forma: desligado",
-      "fill-on": "Preenchimento da forma: ligado",
       "freeze": "Congelar a tela sob a tinta (f)",
       "move-toolbar": "Arraste para mover a barra de ferramentas",
       "redo": "Refazer (Ctrl+Shift+Z)",
