@@ -3291,13 +3291,13 @@
           "label": "Custom App Launch Command",
           "placeholder": "$CMD"
         },
-        "niri-overview-type-to-launch": {
-          "description": "Open the launcher when typing in niri overview; uses a tiny keyboard-focus surface while overview is open",
-          "label": "Type to Launch"
-        },
         "niri-overview-close-on-launch": {
           "description": "Close the overview when an app launches from the launcher while the niri overview is open",
           "label": "Close on Launch"
+        },
+        "niri-overview-type-to-launch": {
+          "description": "Open the launcher when typing in niri overview; uses a tiny keyboard-focus surface while overview is open",
+          "label": "Type to Launch"
         },
         "offline-mode": {
           "description": "Block all outgoing network requests",
@@ -3550,13 +3550,13 @@
           "description": "Share the audio spectrum with Umbriel effects, even without a visualizer widget",
           "label": "Provide Audio to Umbriel"
         },
-        "umbriel-overview-type-to-launch": {
-          "description": "Open the launcher when typing in umbriel overview; uses a tiny keyboard-focus surface while overview is open",
-          "label": "Type to Launch"
-        },
         "umbriel-overview-close-on-launch": {
           "description": "Close the overview when an app launches from the launcher while the umbriel overview is open",
           "label": "Close on Launch"
+        },
+        "umbriel-overview-type-to-launch": {
+          "description": "Open the launcher when typing in umbriel overview; uses a tiny keyboard-focus surface while overview is open",
+          "label": "Type to Launch"
         },
         "window-switcher-current-workspace-only": {
           "description": "List only windows on the active workspace; turn off to include windows from every workspace",

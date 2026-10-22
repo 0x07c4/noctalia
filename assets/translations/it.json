@@ -637,6 +637,7 @@
         "show-session-buttons": "Pulsanti di sessione",
         "show-unlock-hint": "Sblocca avvisi",
         "show-vpn-label": "Mostra etichetta VPN",
+        "show-wave": "Mostra onda",
         "show-weather": "Meteo",
         "show-week-numbers": "Mostra i numeri delle settimane",
         "show-when-idle": "Mostra quando inattivo",
@@ -1033,6 +1034,7 @@
       "lock-and-suspend": "Blocca e sospendi",
       "logout": "Disconnetti",
       "reboot": "Riavvia",
+      "reboot-uefi": "Riavvia in modalità UEFI",
       "shutdown": "Spegni",
       "suspend": "Sospendi"
     },
@@ -1307,6 +1309,8 @@
       "merged-user-description": "Combina file di configurazione e override della GUI in un unico file TOML. I valori predefiniti integrati restano impliciti.",
       "merged-user-save-title": "Salva configurazione utente unificata",
       "merged-user-title": "Configurazione utente unificata (consigliata)",
+      "privacy-warning-description": "Entrambe le modalità di esportazione possono includere chiavi API, password o altri dati sensibili memorizzati nella configurazione, inclusi quelli dei plugin. Tratta i file esportati come privati. Rivedi e rimuovi i dati sensibili prima di condividerli.",
+      "privacy-warning-title": "Le esportazioni possono contenere segreti",
       "title": "Esporta configurazione"
     },
     "idle": {
@@ -1542,10 +1546,15 @@
       },
       "lockscreen": {
         "transition": {
+          "diamond": "Diamond",
           "disc": "Disco",
           "fade": "Dissolvenza",
+          "golden": "Golden",
           "honeycomb": "Nido d'ape",
+          "melt": "Melt",
+          "pixel": "Pixel",
           "stripes": "Strisce",
+          "vortex": "Vortex",
           "wipe": "Wipe",
           "zoom": "Zoom"
         }
@@ -1670,10 +1679,15 @@
           "random": "Casuale"
         },
         "transition": {
+          "diamond": "Diamond",
           "disc": "Disco",
           "fade": "Dissolvenza",
+          "golden": "Golden",
           "honeycomb": "Nido d'ape",
+          "melt": "Melt",
+          "pixel": "Pixel",
           "stripes": "Strisce",
+          "vortex": "Vortex",
           "wipe": "Tendina",
           "zoom": "Zoom"
         }
@@ -3699,6 +3713,8 @@
       "success": "L'archiviazione privata è stata reimpostata correttamente."
     },
     "templates": {
+      "documentation": "Documentazione",
+      "readme": "Readme",
       "store": {
         "browse": "Sfoglia template",
         "categories": "Categorie",
@@ -4043,6 +4059,10 @@
           "screenshot-region": {
             "description": "Avvia uno screenshot interattivo di un'area",
             "label": "Screenshot area"
+          },
+          "screenshot-window": {
+            "description": "Cattura la finestra in focus",
+            "label": "Screenshot della finestra"
           },
           "session": {
             "description": "Eseguire un'azione di sessione integrata",
@@ -4796,6 +4816,10 @@
         "show-vpn-label": {
           "description": "Sostituisce l'etichetta di rete con l'etichetta VPN in modalità di Sostituisci; aggiunge l'etichetta VPN accanto all'icona VPN in modalità Entrambi",
           "label": "Mostra etichetta VPN"
+        },
+        "show-wave": {
+          "description": "Visualizza come area riempita ad onde anziché come barre discrete",
+          "label": "Mostra onda"
         },
         "show-when-idle": {
           "description": "Mantiene visibile il visualizzatore anche quando nessun media è in riproduzione",

@@ -637,6 +637,7 @@
         "show-session-buttons": "Botões de Sessão",
         "show-unlock-hint": "Dica de Desbloqueio",
         "show-vpn-label": "Mostra Rótulo VPN",
+        "show-wave": "Mostrar Onda",
         "show-weather": "Clima",
         "show-week-numbers": "Exibir Números da Semana",
         "show-when-idle": "Mostrar Quando Ocioso",
@@ -1033,6 +1034,7 @@
       "lock-and-suspend": "Bloquear e Suspender",
       "logout": "Sair",
       "reboot": "Reiniciar",
+      "reboot-uefi": "Reiniciar para UEFI",
       "shutdown": "Desligar",
       "suspend": "Suspender"
     },
@@ -1307,6 +1309,8 @@
       "merged-user-description": "Combina arquivos de configuração e alterações na interface gráfica em um único arquivo TOML. Os valores padrão predefinidos permanecem implícitos.",
       "merged-user-save-title": "Salvar Configuração de Usuário Mesclada",
       "merged-user-title": "Configuração de Usuário Mesclada (Recomendado)",
+      "privacy-warning-description": "Ambos modos de exportação podem incluir chaves de API, senhas ou outros dados sensíveis armazenados em seu arquivo de configuração, incluindo plugins. Trate arquivos exportados como privados. Revise e remova dados sensíveis antes de compartilhar.",
+      "privacy-warning-title": "Exportações podem conter segredos",
       "title": "Exportar Configuração"
     },
     "idle": {
@@ -1542,10 +1546,15 @@
       },
       "lockscreen": {
         "transition": {
+          "diamond": "Diamante",
           "disc": "Disco",
           "fade": "Esvanescer",
+          "golden": "Dourado",
           "honeycomb": "Favo de Mel",
+          "melt": "Derretido",
+          "pixel": "Pixel",
           "stripes": "Listras",
+          "vortex": "Vórtice",
           "wipe": "Limpar",
           "zoom": "Zoom"
         }
@@ -1670,10 +1679,15 @@
           "random": "Aleatória"
         },
         "transition": {
+          "diamond": "Diamante",
           "disc": "Disco",
           "fade": "Desvanecer",
+          "golden": "Dourado",
           "honeycomb": "Favo de mel",
+          "melt": "Derretido",
+          "pixel": "Pixel",
           "stripes": "Listras",
+          "vortex": "Vórtice",
           "wipe": "Expurgar",
           "zoom": "Zoom"
         }
@@ -3699,6 +3713,8 @@
       "success": "Redefinição do armazenamento privado bem sucedida"
     },
     "templates": {
+      "documentation": "Documentação",
+      "readme": "Leiame",
       "store": {
         "browse": "Navegar pelos modelos",
         "categories": "Categorias",
@@ -4043,6 +4059,10 @@
           "screenshot-region": {
             "description": "Iniciar uma captura de tela de região interativa",
             "label": "Captura de tela de região"
+          },
+          "screenshot-window": {
+            "description": "Capturar a janela focada",
+            "label": "Capturar de janela"
           },
           "session": {
             "description": "Executar uma ação de sessão integrada",
@@ -4796,6 +4816,10 @@
         "show-vpn-label": {
           "description": "Substitui rótulo de rede com rótulo da VPN em modo Substituir; adiciona rótulo VPN próximo ao ícone de VPN no modo Ambos",
           "label": "Mostrar Rótulo VPN"
+        },
+        "show-wave": {
+          "description": "Exibir como uma onda com área preenchida, em vez de barras separadas",
+          "label": "Mostrar Onda"
         },
         "show-when-idle": {
           "description": "Mantenha o visualizador visível mesmo quando nenhum conteúdo estiver sendo reproduzido",
