@@ -1149,8 +1149,11 @@ struct ShellConfig {
     PanelPlacement wallpaperPlacement = PanelPlacement::Attached;
     PanelPlacement sessionPlacement = PanelPlacement::Attached;
     PanelPlacement polkitPlacement = PanelPlacement::Floating;
-    // Floating screen position per panel (one of kPanelPositions). "auto" = bar-relative.
-    // Launcher/clipboard default to "center" (the historical center-screen behavior).
+    // Screen position per panel (one of kPanelPositions). Pins a floating panel to that
+    // screen position. An attached panel follows it only when the position lies on its
+    // bar's edge (e.g. bottom_right on a bottom bar aligns to the bar's right end); any
+    // other value keeps it bar-centered. Launcher/clipboard default to "center" (the
+    // historical center-screen behavior for their floating default).
     std::string launcherPosition = "center";
     std::string clipboardPosition = "center";
     std::string controlCenterPosition = "auto";

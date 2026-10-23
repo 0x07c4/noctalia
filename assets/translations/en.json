@@ -1577,10 +1577,6 @@
         "horizontal": "Horizontal",
         "vertical": "Vertical"
       },
-      "panel-bar-alignment": {
-        "centered": "Centered",
-        "near-trigger": "Near Trigger"
-      },
       "panel-position": {
         "auto": "Follow Bar"
       },
@@ -1737,15 +1733,15 @@
           "label": "Layer"
         },
         "open-near-click": {
-          "description": "Where the panel is positioned when opened by clicking on the bar widget",
-          "label": "Along Bar"
+          "description": "When opened by clicking its bar widget, open the panel next to the widget instead of at its Position",
+          "label": "Open Near Clicked Widget"
         },
         "placement": {
           "description": "Attach the panel to the bar or float it near the bar edge",
           "label": "Placement"
         },
         "position": {
-          "description": "Screen position when the panel is floating",
+          "description": "Floating: where the panel sits on screen; Follow Bar keeps it near the bar. Attached: a position along the bar's edge aligns it to that end of the bar",
           "label": "Position"
         }
       },
@@ -2826,24 +2822,24 @@
           "label": "List Item Background"
         },
         "open-near-click-clipboard": {
-          "description": "Where the clipboard is positioned when opened by clicking on the bar widget",
-          "label": "Along Bar"
+          "description": "When opened by clicking its bar widget, open the clipboard next to the widget instead of at its Position",
+          "label": "Open Near Clicked Widget"
         },
         "open-near-click-control-center": {
-          "description": "Where Control Center is positioned when opened by clicking on the bar widget",
-          "label": "Along Bar"
+          "description": "When opened by clicking its bar widget, open Control Center next to the widget instead of at its Position",
+          "label": "Open Near Clicked Widget"
         },
         "open-near-click-launcher": {
-          "description": "Where the launcher is positioned when opened by clicking on the bar widget",
-          "label": "Along Bar"
+          "description": "When opened by clicking its bar widget, open the launcher next to the widget instead of at its Position",
+          "label": "Open Near Clicked Widget"
         },
         "open-near-click-session": {
-          "description": "Where the session panel is positioned when opened by clicking on the bar widget",
-          "label": "Along Bar"
+          "description": "When opened by clicking its bar widget, open the session panel next to the widget instead of at its Position",
+          "label": "Open Near Clicked Widget"
         },
         "open-near-click-wallpaper": {
-          "description": "Where the wallpaper picker is positioned when opened by clicking on the bar widget",
-          "label": "Along Bar"
+          "description": "When opened by clicking its bar widget, open the wallpaper picker next to the widget instead of at its Position",
+          "label": "Open Near Clicked Widget"
         },
         "panel-anchor-bar": {
           "description": "Bar panels attach to when opened; leave empty to follow the widget, shortcut, or dock that opened them",
@@ -2874,27 +2870,27 @@
           "label": "Placement"
         },
         "position-clipboard": {
-          "description": "Where the clipboard floats on screen; Follow Bar keeps it near the bar",
+          "description": "Floating: where the clipboard sits on screen; Follow Bar keeps it near the bar. Attached: a position along the bar's edge aligns it to that end of the bar",
           "label": "Position"
         },
         "position-control-center": {
-          "description": "Where Control Center floats on screen; Follow Bar keeps it near the bar",
+          "description": "Floating: where Control Center sits on screen; Follow Bar keeps it near the bar. Attached: a position along the bar's edge aligns it to that end of the bar",
           "label": "Position"
         },
         "position-launcher": {
-          "description": "Where the launcher floats on screen; Follow Bar keeps it near the bar",
+          "description": "Floating: where the launcher sits on screen; Follow Bar keeps it near the bar. Attached: a position along the bar's edge aligns it to that end of the bar",
           "label": "Position"
         },
         "position-polkit": {
-          "description": "Where the polkit prompt floats on screen; Follow Bar keeps it near the bar",
+          "description": "Floating: where the polkit prompt sits on screen; Follow Bar keeps it near the bar. Attached: a position along the bar's edge aligns it to that end of the bar",
           "label": "Position"
         },
         "position-session": {
-          "description": "Where the session panel floats on screen; Follow Bar keeps it near the bar",
+          "description": "Floating: where the session panel sits on screen; Follow Bar keeps it near the bar. Attached: a position along the bar's edge aligns it to that end of the bar",
           "label": "Position"
         },
         "position-wallpaper": {
-          "description": "Where the wallpaper picker floats on screen; Follow Bar keeps it near the bar",
+          "description": "Floating: where the wallpaper picker sits on screen; Follow Bar keeps it near the bar. Attached: a position along the bar's edge aligns it to that end of the bar",
           "label": "Position"
         },
         "shadow": {

@@ -1067,13 +1067,28 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     std::int32_t visualY = 0;
     const bool useAnchorForAttached =
         request.hasAnchorPosition && openNearClickEnabled(m_activePanel, m_activePanelId, m_config);
+    // A position on the bar's own edge aligns the panel to that end of the bar, at the
+    // same inset bound the click anchor clamps to; anything else stays bar-centered.
+    const auto attachedAlign = shell::attachedPositionAlign(panelPosition, barPosition);
+    const auto alongBar = [&](std::int32_t minPos, std::int32_t maxPos, std::int32_t centered, std::int32_t desired) {
+      if (useAnchorForAttached) {
+        return std::clamp(desired, minPos, maxPos);
+      }
+      if (attachedAlign.start) {
+        return minPos;
+      }
+      if (attachedAlign.end) {
+        return maxPos;
+      }
+      return centered;
+    };
     if (barIsVertical) {
       const auto minY = barTop + totalStartInset;
       const auto maxY = std::max(minY, barBottom - static_cast<std::int32_t>(panelHeight) - totalEndInset);
       const auto centeredY = barTop + (barBottom - barTop - static_cast<std::int32_t>(panelHeight)) / 2;
       const auto desiredY =
           static_cast<std::int32_t>(std::lround(request.anchorY - static_cast<float>(panelHeight) * 0.5F));
-      visualY = useAnchorForAttached ? std::clamp(desiredY, minY, maxY) : centeredY;
+      visualY = alongBar(minY, maxY, centeredY, desiredY);
       visualX = barIsLeft ? barRight - panelOverlap : barLeft - static_cast<std::int32_t>(panelWidth) + panelOverlap;
     } else {
       const auto minX = barLeft + totalStartInset;
@@ -1081,7 +1096,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
       const auto centeredX = barLeft + (barRight - barLeft - static_cast<std::int32_t>(panelWidth)) / 2;
       const auto desiredX =
           static_cast<std::int32_t>(std::lround(request.anchorX - static_cast<float>(panelWidth) * 0.5F));
-      visualX = useAnchorForAttached ? std::clamp(desiredX, minX, maxX) : centeredX;
+      visualX = alongBar(minX, maxX, centeredX, desiredX);
       visualY = barIsBottom ? barTop - static_cast<std::int32_t>(panelHeight) + panelOverlap : barBottom - panelOverlap;
     }
 
