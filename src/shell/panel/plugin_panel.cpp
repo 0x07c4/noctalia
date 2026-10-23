@@ -30,8 +30,6 @@ namespace {
   constexpr int kTickIntervalMs = 1000;
   constexpr float kDefaultPanelWidth = 480.0F;
   constexpr float kDefaultPanelHeight = 400.0F;
-  // Cap for height = "content" without max_height; PanelManager clamps to the output.
-  constexpr float kUnboundedContentHeight = 16384.0F;
 
   // Manifest vocabulary (scripting::kPanelKeyboardFocusModes) to layer-shell mode.
   // The manifest parser rejects anything else, so an unknown token here means the
@@ -69,8 +67,7 @@ PluginPanel::PluginPanel(scripting::PluginRuntimeContext context, PluginPanelOpt
       m_preferredWidth(options.width > 0.0 ? static_cast<float>(options.width) : kDefaultPanelWidth),
       m_preferredHeight(options.height > 0.0 ? static_cast<float>(options.height) : kDefaultPanelHeight),
       m_widthFill(options.widthFill), m_heightFill(options.heightFill), m_heightContent(options.heightContent),
-      m_maxContentHeight(options.maxHeight > 0.0 ? static_cast<float>(options.maxHeight) : kUnboundedContentHeight),
-      m_dismissOnOutsideClick(options.dismissOnOutsideClick),
+      m_maxContentHeight(static_cast<float>(options.maxHeight)), m_dismissOnOutsideClick(options.dismissOnOutsideClick),
       m_keyboardMode(keyboardModeFromManifest(options.keyboardFocus)),
       m_layer(layerShellLayerFromConfig(options.shellConfig.layer)), m_persistent(options.persistent),
       m_shellConfig(options.shellConfig) {

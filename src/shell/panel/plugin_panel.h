@@ -37,7 +37,7 @@ struct PluginPanelOptions {
   // only the fallback if the compositor never assigns one.
   bool widthFill = false;
   bool heightFill = false;
-  // Height follows the rendered tree, up to maxHeight (0 = the output's available height).
+  // Height follows the rendered tree, up to maxHeight.
   bool heightContent = false;
   double maxHeight = 0.0;
   bool dismissOnOutsideClick = true;

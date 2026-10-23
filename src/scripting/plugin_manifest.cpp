@@ -488,6 +488,10 @@ namespace scripting {
               return false;
             }
             entry.panelMaxHeight = *maxHeight;
+          } else if (entry.panelHeightContent) {
+            // The surface is allocated at the maximum for as long as the panel is open.
+            error = "panel entry '" + entry.id + R"(': height = "content" requires max_height)";
+            return false;
           }
           if (const std::string placement = tableString(*entryTable, "placement"); !placement.empty()) {
             entry.panelPlacementDefault = placement;

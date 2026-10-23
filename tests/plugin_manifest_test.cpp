@@ -694,6 +694,8 @@ int main() {
   const auto contentErrors = std::vector<std::pair<std::string, std::string>>{
       {"plugin_api = 41\n[[panel]]\nid = \"panel\"\nentry = \"panel.luau\"\nheight = \"content\"\n",
        R"(panel entry 'panel': height = "content" requires plugin_api >= 42)"},
+      {"plugin_api = 42\n[[panel]]\nid = \"panel\"\nentry = \"panel.luau\"\nheight = \"content\"\n",
+       R"(panel entry 'panel': height = "content" requires max_height)"},
       {"plugin_api = 42\n[[panel]]\nid = \"panel\"\nentry = \"panel.luau\"\nheight = 300\nmax_height = 500\n",
        R"(panel entry 'panel': max_height requires height = "content")"},
       {"plugin_api = 42\n[[panel]]\nid = \"panel\"\nentry = \"panel.luau\"\nheight = \"content\"\nmax_height = 0\n",

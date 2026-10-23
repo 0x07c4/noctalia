@@ -124,7 +124,7 @@ namespace scripting {
     bool panelWidthFill = false;
     bool panelHeightFill = false;
     // height = "content": the panel's height follows its rendered tree, capped at
-    // panelMaxHeight (0 = only the output's available height).
+    // panelMaxHeight (required with it).
     bool panelHeightContent = false;
     double panelMaxHeight = 0.0;
     // Host-standard shell settings (see plugin_panel_shell.*). Optional
