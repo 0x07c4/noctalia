@@ -140,9 +140,6 @@ public:
   void clearActivePopup();
 
   void refresh();
-  // Re-read preferredWidth/Height on the active detached panel and request a new
-  // layer-shell size (e.g. polkit growing when a password field appears).
-  void relayoutActivePanelPreferredSize();
   // Refresh a single panel by id, whichever host owns it. Used by content that
   // knows which panel it belongs to (e.g. a plugin panel's new UI tree).
   void refreshPanel(std::string_view panelId);
@@ -211,8 +208,8 @@ private:
   // Positions the background, shadows, and content node around the current card and sets
   // the content size the panel lays out at.
   void placePanelChrome();
-  // Lays out the active panel; a content-fitted panel is then measured, its card resized,
-  // and laid out again at the fitted height.
+  // Lays out the active panel; a content-fitted panel is then measured, its card animated
+  // toward the fitted height, and its content laid out again at that height.
   void layoutActivePanel(Renderer& renderer);
   // Moves and resizes the visible card inside the fixed content-fit slot, along with the
   // input region, click-shield rect, attached-bar geometry, and blur. Returns false when
@@ -288,6 +285,9 @@ private:
     std::uint32_t slotHeight = 0;
     std::int32_t slotOutputY = 0;
     std::optional<AttachedPanelGeometry> attachedSlotGeometry;
+    // Height the content asked for; the card animates toward it. 0 until first measured.
+    std::uint32_t targetHeight = 0;
+    AnimationManager::Id animation = 0;
   };
   ContentFit m_contentFit;
   // Fill axes derive their visual size from the compositor-configured surface

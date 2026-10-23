@@ -1888,97 +1888,6 @@ void PanelManager::refresh() {
   m_surface->requestUpdate();
 }
 
-void PanelManager::relayoutActivePanelPreferredSize() {
-  // A content-fitted panel already follows its content inside a fixed surface.
-  if (!isOpen()
-      || m_activePanel == nullptr
-      || m_surface == nullptr
-      || m_layerSurface == nullptr
-      || m_attachedToBar
-      || m_contentFit.enabled) {
-    return;
-  }
-  if (m_platform == nullptr || m_config == nullptr) {
-    return;
-  }
-
-  const auto screenPadding = static_cast<std::int32_t>(Style::spaceSm);
-  const auto* wlOutput = m_output != nullptr ? m_platform->findOutputByWl(m_output) : nullptr;
-  const std::int32_t outputWidth = wlOutput != nullptr ? wlOutput->effectiveLogicalWidth() : 0;
-  const std::int32_t outputHeight = wlOutput != nullptr ? wlOutput->effectiveLogicalHeight() : 0;
-
-  auto panelWidth = static_cast<std::uint32_t>(std::max(1.0F, std::round(m_activePanel->preferredWidth())));
-  auto panelHeight = static_cast<std::uint32_t>(std::max(1.0F, std::round(m_activePanel->preferredHeight())));
-  if (outputWidth > 0) {
-    panelWidth = std::min(panelWidth, static_cast<std::uint32_t>(std::max(1, outputWidth - screenPadding * 2)));
-  }
-  if (outputHeight > 0) {
-    panelHeight = std::min(panelHeight, static_cast<std::uint32_t>(std::max(1, outputHeight - screenPadding * 2)));
-  }
-  if (panelWidth == m_panelVisualWidth && panelHeight == m_panelVisualHeight) {
-    return;
-  }
-
-  const auto detachedShadowBleed =
-      shell::panel_surface::bleed(m_activePanel->hasDecoration(), m_config->config().shell.shadow);
-  const std::uint32_t surfaceWidth =
-      shell::panel_surface::surfaceExtent(panelWidth, detachedShadowBleed.left, detachedShadowBleed.right);
-  const std::uint32_t surfaceHeight =
-      shell::panel_surface::surfaceExtent(panelHeight, detachedShadowBleed.up, detachedShadowBleed.down);
-
-  const std::string panelPosition = resolvePanelPosition(m_config, m_activePanelId);
-  const bool useCenterScreenLayout =
-      m_activePanel->panelPlacement() == PanelPlacement::Floating && panelPosition == "center";
-  if (m_panelOutputInputRect.has_value()) {
-    InputRect rect = *m_panelOutputInputRect;
-    const std::uint32_t anchor = m_layerSurface->anchor();
-    if (!m_panelFillWidth) {
-      const auto widthDelta = static_cast<std::int32_t>(panelWidth) - static_cast<std::int32_t>(m_panelVisualWidth);
-      const bool anchoredLeft = (anchor & LayerShellAnchor::Left) != 0;
-      const bool anchoredRight = (anchor & LayerShellAnchor::Right) != 0;
-      if (useCenterScreenLayout && outputWidth > 0) {
-        rect.x = (outputWidth - static_cast<std::int32_t>(panelWidth)) / 2;
-      } else if (anchoredRight && !anchoredLeft) {
-        rect.x -= widthDelta;
-      } else if (anchoredLeft == anchoredRight) {
-        rect.x -= widthDelta / 2;
-      }
-      rect.width = static_cast<int>(panelWidth);
-    }
-    if (!m_panelFillHeight) {
-      const auto heightDelta = static_cast<std::int32_t>(panelHeight) - static_cast<std::int32_t>(m_panelVisualHeight);
-      const bool anchoredTop = (anchor & LayerShellAnchor::Top) != 0;
-      const bool anchoredBottom = (anchor & LayerShellAnchor::Bottom) != 0;
-      if (useCenterScreenLayout && outputHeight > 0) {
-        rect.y = (outputHeight - static_cast<std::int32_t>(panelHeight)) / 2;
-      } else if (anchoredBottom && !anchoredTop) {
-        rect.y -= heightDelta;
-      } else if (anchoredTop == anchoredBottom) {
-        rect.y -= heightDelta / 2;
-      }
-      rect.height = static_cast<int>(panelHeight);
-    }
-    m_panelOutputInputRect = rect;
-    m_clickShield.setPanelInputRect(m_output, rect);
-  }
-
-  m_panelVisualWidth = panelWidth;
-  m_panelVisualHeight = panelHeight;
-
-  if (useCenterScreenLayout && outputWidth > 0 && outputHeight > 0) {
-    const std::int32_t marginLeft =
-        (outputWidth - static_cast<std::int32_t>(panelWidth)) / 2 - detachedShadowBleed.left;
-    const std::int32_t marginTop = (outputHeight - static_cast<std::int32_t>(panelHeight)) / 2 - detachedShadowBleed.up;
-    m_layerSurface->setMargins(marginTop, m_layerSurface->marginRight(), m_layerSurface->marginBottom(), marginLeft);
-  }
-
-  m_layerSurface->requestSize(surfaceWidth, surfaceHeight);
-  m_surface->setInputRegion(
-      {InputRect{m_panelInsetX, m_panelInsetY, static_cast<int>(panelWidth), static_cast<int>(panelHeight)}}
-  );
-  m_surface->requestLayout();
-}
-
 void PanelManager::refreshPanel(std::string_view panelId) {
   if (m_persistentHost.hasPanel(panelId)) {
     m_persistentHost.refreshPanel(panelId);
@@ -2941,10 +2850,14 @@ void PanelManager::placePanelChrome() {
 
   const float kPadding = m_activePanel->hasDecoration() ? m_activePanel->contentScale() * Style::panelPadding : 0.0F;
   m_contentWidth = panelW - kPadding * 2.0F;
-  m_contentHeight = panelH - kPadding * 2.0F;
+  // A content-fitted panel lays its content out at the target height once; while the card
+  // animates toward it, the content node clips to the card instead of relaying out.
+  const bool fitted = m_contentFit.enabled && m_contentFit.targetHeight > 0;
+  m_contentHeight = std::max(0.0F, (fitted ? static_cast<float>(m_contentFit.targetHeight) : panelH) - kPadding * 2.0F);
   if (m_contentNode != nullptr) {
+    m_contentNode->setClipChildren(m_contentFit.enabled);
     m_contentNode->setPosition(panelX + kPadding, panelY + kPadding);
-    m_contentNode->setSize(m_contentWidth, m_contentHeight);
+    m_contentNode->setSize(m_contentWidth, std::max(0.0F, panelH - kPadding * 2.0F));
   }
 }
 
@@ -2955,10 +2868,34 @@ void PanelManager::layoutActivePanel(Renderer& renderer) {
   }
   const float padding = m_activePanel->hasDecoration() ? m_activePanel->contentScale() * Style::panelPadding : 0.0F;
   const float natural = m_activePanel->measureContentHeight(renderer, m_contentWidth);
-  if (setCardHeight(static_cast<std::uint32_t>(std::ceil(std::max(0.0F, natural) + padding * 2.0F)))) {
+  const auto target = std::clamp<std::uint32_t>(
+      static_cast<std::uint32_t>(std::ceil(std::max(0.0F, natural) + padding * 2.0F)), 1U,
+      std::max(1U, m_contentFit.slotHeight)
+  );
+  if (target != m_contentFit.targetHeight) {
+    const bool firstMeasure = m_contentFit.targetHeight == 0;
+    m_contentFit.targetHeight = target;
+    if (m_contentFit.animation != 0) {
+      m_animations.cancel(m_contentFit.animation);
+      m_contentFit.animation = 0;
+    }
+    if (firstMeasure || m_panelVisualHeight == target) {
+      // The open reveal already animates the first appearance.
+      (void)setCardHeight(target);
+    } else {
+      m_contentFit.animation = m_animations.animate(
+          static_cast<float>(m_panelVisualHeight), static_cast<float>(target), Style::animNormal, Easing::EaseOutCubic,
+          [this](float height) {
+            if (setCardHeight(static_cast<std::uint32_t>(std::lround(height)))) {
+              placePanelChrome();
+            }
+          },
+          [this]() { m_contentFit.animation = 0; }, m_sceneRoot.get()
+      );
+    }
     placePanelChrome();
   }
-  // Measuring left the content at its natural height; lay it out at the card's.
+  // Measuring left the content at its natural height; lay it out at the target.
   m_activePanel->layout(renderer, m_contentWidth, m_contentHeight);
 }
 
