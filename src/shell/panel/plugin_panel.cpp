@@ -30,6 +30,8 @@ namespace {
   constexpr int kTickIntervalMs = 1000;
   constexpr float kDefaultPanelWidth = 480.0F;
   constexpr float kDefaultPanelHeight = 400.0F;
+  // Cap for height = "content" without max_height; PanelManager clamps to the output.
+  constexpr float kUnboundedContentHeight = 16384.0F;
 
   // Manifest vocabulary (scripting::kPanelKeyboardFocusModes) to layer-shell mode.
   // The manifest parser rejects anything else, so an unknown token here means the
@@ -66,7 +68,8 @@ PluginPanel::PluginPanel(scripting::PluginRuntimeContext context, PluginPanelOpt
       m_clipboard(context.clipboard),
       m_preferredWidth(options.width > 0.0 ? static_cast<float>(options.width) : kDefaultPanelWidth),
       m_preferredHeight(options.height > 0.0 ? static_cast<float>(options.height) : kDefaultPanelHeight),
-      m_widthFill(options.widthFill), m_heightFill(options.heightFill),
+      m_widthFill(options.widthFill), m_heightFill(options.heightFill), m_heightContent(options.heightContent),
+      m_maxContentHeight(options.maxHeight > 0.0 ? static_cast<float>(options.maxHeight) : kUnboundedContentHeight),
       m_dismissOnOutsideClick(options.dismissOnOutsideClick),
       m_keyboardMode(keyboardModeFromManifest(options.keyboardFocus)),
       m_layer(layerShellLayerFromConfig(options.shellConfig.layer)), m_persistent(options.persistent),
@@ -300,6 +303,17 @@ void PluginPanel::doLayout(Renderer& renderer, float width, float height) {
     m_dragOverlay->setPosition(0.0F, 0.0F);
     m_dragOverlay->setFrameSize(width, height);
   }
+}
+
+float PluginPanel::measureContentHeight(Renderer& renderer, float contentWidth) {
+  // The rendered tree is the content column's only child; measure it at the panel's width
+  // with no height limit. Before the first panel.render() there is nothing to measure.
+  if (m_contentFlex == nullptr || m_contentFlex->children().empty()) {
+    return 0.0F;
+  }
+  LayoutConstraints constraints;
+  constraints.setExactWidth(contentWidth);
+  return m_contentFlex->children().front()->measure(renderer, constraints).height;
 }
 
 void PluginPanel::doUpdate(Renderer& renderer) { (void)renderer; }
