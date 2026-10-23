@@ -247,6 +247,7 @@ std::unique_ptr<Flex> HomeTab::create() {
   }
 
   const float avatarSize = homeAvatarSize(scale);
+  const bool circularAvatar = m_config == nullptr || m_config->config().controlCenter.circularAvatar;
   const auto openAvatarPicker = [this]() {
     if (m_config == nullptr) {
       return;
@@ -280,7 +281,7 @@ std::unique_ptr<Flex> HomeTab::create() {
 
   auto avatarArea = ui::inputArea({});
   avatarArea->setSize(avatarSize, avatarSize);
-  avatarArea->setHitShape(InputArea::HitShape::Circle);
+  avatarArea->setHitShape(circularAvatar ? InputArea::HitShape::Circle : InputArea::HitShape::Rect);
   avatarArea->setFocusable(true);
   avatarArea->setCursorShape(WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER);
   avatarArea->setOnClick([openAvatarPicker](const InputArea::PointerData&) { openAvatarPicker(); });
@@ -294,7 +295,7 @@ std::unique_ptr<Flex> HomeTab::create() {
       ui::image({
           .out = &m_userAvatar,
           .fit = ImageFit::Cover,
-          .radius = avatarSize * 0.5F,
+          .radius = circularAvatar ? avatarSize * 0.5F : Style::scaledRadiusLg(scale),
           .padding = 1.0F * scale,
           .width = avatarSize,
           .height = avatarSize,
@@ -852,8 +853,12 @@ void HomeTab::doLayout(Renderer& renderer, float contentWidth, float bodyHeight)
     const float desiredAvatar = std::max(minAvatar, m_userMain->height());
     if (std::abs(m_userAvatar->width() - desiredAvatar) > 0.5F) {
       m_userAvatar->setSize(desiredAvatar, desiredAvatar);
-      m_userAvatar->setRadius(desiredAvatar * 0.5F);
       m_userAvatar->setPadding(1.0F * scale);
+    }
+    const bool circularAvatar = m_config == nullptr || m_config->config().controlCenter.circularAvatar;
+    m_userAvatar->setRadius(circularAvatar ? desiredAvatar * 0.5F : Style::scaledRadiusLg(scale));
+    if (m_userAvatarArea != nullptr) {
+      m_userAvatarArea->setHitShape(circularAvatar ? InputArea::HitShape::Circle : InputArea::HitShape::Rect);
     }
     m_userMain->setMinHeight(desiredAvatar);
     m_userMain->setSize(m_userMain->width(), desiredAvatar);

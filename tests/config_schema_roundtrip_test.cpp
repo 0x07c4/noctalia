@@ -454,6 +454,7 @@ location = "https://example.invalid/bad"
     c.bluetooth.connectWhenEnabled = true;
     c.controlCenter.sidebarMode = ControlCenterSidebarMode::Full;
     c.controlCenter.sidebarSectionMode = ControlCenterSidebarMode::None;
+    c.controlCenter.circularAvatar = false;
     c.controlCenter.calendarTab.showEventsCard = false;
     c.controlCenter.calendarTab.showWeekNumbers = true;
     c.controlCenter.mediaTab.showVisualizer = false;
