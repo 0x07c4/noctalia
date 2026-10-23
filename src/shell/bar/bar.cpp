@@ -874,6 +874,44 @@ namespace {
     };
   }
 
+  // Click-through dead zone: one rect per interactive widget, spanning the bar's thickness and padded
+  // along the bar by the capsule padding that widens widget hit targets past their bounds. Spacers and
+  // passive widgets are dead zone (see widgetAtPoint), so they pass through too.
+  [[nodiscard]] std::vector<InputRect> barWidgetsInputRegion(const BarInstance& instance, const InputRect& bar) {
+    const bool isVertical = (instance.barConfig.position == "left" || instance.barConfig.position == "right");
+    const float pad = instance.barConfig.widgetCapsulePadding;
+    std::vector<InputRect> rects;
+    for (const auto* widgets : {&instance.startWidgets, &instance.centerWidgets, &instance.endWidgets}) {
+      for (const auto& widget : *widgets) {
+        const Node* node = widget != nullptr ? widget->outerNode() : nullptr;
+        if (node == nullptr
+            || widget->isBarClickThrough()
+            || !node->visible()
+            || node->width() <= 0.0F
+            || node->height() <= 0.0F) {
+          continue;
+        }
+        float x = 0.0F;
+        float y = 0.0F;
+        Node::absolutePosition(node, x, y);
+        if (isVertical) {
+          const int top = std::max(bar.y, static_cast<int>(std::floor(y - pad)));
+          const int bottom = std::min(bar.y + bar.height, static_cast<int>(std::ceil(y + node->height() + pad)));
+          if (bottom > top) {
+            rects.push_back(InputRect{bar.x, top, bar.width, bottom - top});
+          }
+        } else {
+          const int left = std::max(bar.x, static_cast<int>(std::floor(x - pad)));
+          const int right = std::min(bar.x + bar.width, static_cast<int>(std::ceil(x + node->width() + pad)));
+          if (right > left) {
+            rects.push_back(InputRect{left, bar.y, right - left, bar.height});
+          }
+        }
+      }
+    }
+    return rects;
+  }
+
   std::pair<float, float> computeAutoHideHiddenDelta(
       bool isVertical, bool isBottom, bool isRight, float w, float h, float contentLeft, float contentTop,
       float contentRight, float contentBottom
@@ -3177,6 +3215,7 @@ void Bar::syncBarAutoHideInputRegion(BarInstance& instance) const {
   const int surfW = static_cast<int>(instance.surface->width());
   const int surfH = static_cast<int>(instance.surface->height());
   if (!instanceAcceptsPointerInput(instance)) {
+    instance.clickThroughInputRegion.reset();
     instance.surface->setInputRegion({});
     return;
   }
@@ -3185,12 +3224,21 @@ void Bar::syncBarAutoHideInputRegion(BarInstance& instance) const {
         || instance.attachedPopupCount > 0
         || instance.hideOpacity > 0.5F
         || (instance.barConfig.smartAutoHide && instance.smartAutoHidePinnedVisible);
+    instance.clickThroughInputRegion.reset();
     instance.surface->setInputRegion(barAutoHideSurfaceInputRegion(instance.barConfig, surfW, surfH, fullSurface));
     return;
   }
-  instance.surface->setInputRegion(
-      {barContentInputRegion(instance.barConfig, m_config->config().shell.shadow, surfW, surfH)}
-  );
+  const auto barRect = barContentInputRegion(instance.barConfig, m_config->config().shell.shadow, surfW, surfH);
+  if (instance.barConfig.deadZone.clickThrough) {
+    auto rects = barWidgetsInputRegion(instance, barRect);
+    if (instance.clickThroughInputRegion != rects) {
+      instance.surface->setInputRegion(rects);
+      instance.clickThroughInputRegion = std::move(rects);
+    }
+    return;
+  }
+  instance.clickThroughInputRegion.reset();
+  instance.surface->setInputRegion({barRect});
 }
 
 void Bar::revealAutoHideBar(BarInstance& instance) {
@@ -3215,6 +3263,7 @@ void Bar::revealAutoHideBar(BarInstance& instance) {
   if (current >= kSettledThreshold) {
     const int surfW = static_cast<int>(instance.surface->width());
     const int surfH = static_cast<int>(instance.surface->height());
+    instance.clickThroughInputRegion.reset();
     instance.surface->setInputRegion(barAutoHideSurfaceInputRegion(instance.barConfig, surfW, surfH, true));
     syncBarSurfaceChrome(instance);
     instance.surface->requestRedraw();
@@ -3233,6 +3282,7 @@ void Bar::revealAutoHideBar(BarInstance& instance) {
   );
   const int surfW = static_cast<int>(instance.surface->width());
   const int surfH = static_cast<int>(instance.surface->height());
+  instance.clickThroughInputRegion.reset();
   instance.surface->setInputRegion(barAutoHideSurfaceInputRegion(instance.barConfig, surfW, surfH, true));
   syncBarSurfaceChrome(instance);
   instance.surface->requestRedraw();
@@ -3542,6 +3592,8 @@ void Bar::buildScene(BarInstance& instance, std::uint32_t width, std::uint32_t h
   instance.slideHiddenDy = hiddenDelta.second;
   syncBarSlideLayerTransform(instance);
 
+  // A rebuilt scene may sit on a new surface, so always send the region once.
+  instance.clickThroughInputRegion.reset();
   syncBarAutoHideInputRegion(instance);
   syncBarSurfaceChrome(instance);
 }
@@ -3576,6 +3628,9 @@ void Bar::updateWidgets(BarInstance& instance) {
   updateSection(instance.centerWidgets);
   updateSection(instance.endWidgets);
   layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical);
+  if (instance.barConfig.deadZone.clickThrough) {
+    syncBarAutoHideInputRegion(instance);
+  }
 }
 
 void Bar::prepareFrame(BarInstance& instance, bool needsUpdate, bool needsLayout) {
@@ -3618,6 +3673,10 @@ void Bar::prepareFrame(BarInstance& instance, bool needsUpdate, bool needsLayout
       widget->layout(renderer, barAreaW, barAreaH);
     }
     layoutBarSections(instance, renderer, barAreaW, barAreaH, padding, isVertical);
+  }
+  // Click-through input follows the widgets, which move whenever a widget resizes.
+  if (instance.barConfig.deadZone.clickThrough) {
+    syncBarAutoHideInputRegion(instance);
   }
 }
 

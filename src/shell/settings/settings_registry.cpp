@@ -3845,6 +3845,16 @@ namespace settings {
           section, "widget-list", tr("settings.schema.bar.end-widgets.label"),
           tr("settings.schema.bar.end-widgets.description"), path("end"), ListSetting{.items = bar.endWidgets}, "right"
       ));
+      {
+        auto e = makeEntry(
+            section, "dead-zone", tr("settings.schema.bar.dead-zone-click-through.label"),
+            tr("settings.schema.bar.dead-zone-click-through.description"),
+            std::vector<std::string>{"bar", bar.name, "dead_zone", "click_through"},
+            ToggleSetting{bar.deadZone.clickThrough}, "bar empty margin dead zone click through pass input region"
+        );
+        e.visibleWhen = [autoHideOn](const Config& c) { return !autoHideOn(c); };
+        entries.push_back(std::move(e));
+      }
       // One row per gesture, from the same closed set widget actions use. An unset row shows the
       // built-in default as its placeholder, so "empty" never reads as "does nothing".
       for (const auto gesture : noctalia::bar::allGestures()) {
@@ -4213,6 +4223,19 @@ namespace settings {
             tr("settings.schema.bar.end-widgets.description"), monitorPath("end"),
             ListSetting{.items = ovr.endWidgets.value_or(bar.endWidgets)}, "right"
         ));
+        {
+          std::vector<std::string> clickThroughPath = root;
+          clickThroughPath.emplace_back("dead_zone");
+          clickThroughPath.emplace_back("click_through");
+          auto e = makeEntry(
+              section, "dead-zone", tr("settings.schema.bar.dead-zone-click-through.label"),
+              tr("settings.schema.bar.dead-zone-click-through.description"), std::move(clickThroughPath),
+              ToggleSetting{ovr.deadZone.clickThrough.value_or(bar.deadZone.clickThrough)},
+              "bar empty margin dead zone click through pass input region"
+          );
+          e.visibleWhen = [monitorAutoHideOn](const Config& c) { return !monitorAutoHideOn(c); };
+          entries.push_back(std::move(e));
+        }
         for (const auto gesture : noctalia::bar::allGestures()) {
           const std::string key(noctalia::bar::gestureConfigKey(gesture));
           std::vector<std::string> gesturePath = root;
