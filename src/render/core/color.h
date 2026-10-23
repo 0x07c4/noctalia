@@ -147,6 +147,8 @@ void rgbToHsl(const Color& rgb, float& h, float& s, float& l);
 [[nodiscard]] Color readableTextColorForBackground(const Color& background);
 // Formats as "#RRGGBB" (alpha dropped).
 [[nodiscard]] std::string formatRgbHex(const Color& color);
+// Formats as "#RRGGBBAA".
+[[nodiscard]] std::string formatRgbaHex(const Color& color);
 // Like hex() but non-throwing, trims whitespace, and tolerates a missing '#'.
 [[nodiscard]] bool tryParseHexColor(std::string_view input, Color& out);
 // Parses a CSS-style color string into out, returning false if it is not a color.

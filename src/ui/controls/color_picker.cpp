@@ -17,11 +17,13 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <linux/input-event-codes.h>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace {
 
@@ -32,6 +34,8 @@ namespace {
   constexpr float kSvThumbSize = 18.0F;
   constexpr float kHueThumbSize = 16.0F;
   constexpr float kFormatSelectWidth = 76.0F;
+  constexpr float kAlphaFieldWidth = 56.0F;
+  constexpr float kSwatchSize = 24.0F;
 
   [[nodiscard]] std::string sanitizeHexFieldInput(std::string_view input) {
     std::string out;
@@ -98,6 +102,7 @@ ColorPicker::ColorPicker() {
       })
   );
   addChild(ui::image({.out = &m_hueImage, .fit = ImageFit::Stretch}));
+  addChild(ui::image({.out = &m_alphaImage, .fit = ImageFit::Stretch, .visible = false}));
 
   auto fields = ui::row({
       .out = &m_fieldsRow,
@@ -132,30 +137,27 @@ ColorPicker::ColorPicker() {
     fields->addChild(makeField(&component));
     component->setOnChange([this](const std::string& /*value*/) { onComponentInputChange(); });
   }
+  fields->addChild(
+      ui::input({
+          .out = &m_alphaField,
+          .fontSize = Style::fontSizeCaption,
+          .controlHeight = Style::controlHeightSm,
+          .horizontalPadding = Style::spaceSm,
+          .width = kAlphaFieldWidth,
+          .visible = false,
+      })
+  );
+  m_alphaField->setOnChange([this](const std::string& /*value*/) { onAlphaInputChange(); });
   m_hexInput->setOnChange([this](const std::string& value) { onHexInputChange(value); });
   m_hexInput->setOnSubmit([this](const std::string& value) { applyHexInput(sanitizeHexFieldInput(value)); });
   m_hexInput->setSubmitOnFocusLoss(true);
   addChild(std::move(fields));
+  addChild(ui::row({.out = &m_swatchRow, .align = FlexAlign::Center, .gap = Style::spaceXs, .visible = false}));
 
-  const auto makePickArea = [this](InputArea** out, auto pick) {
-    auto area = std::make_unique<InputArea>();
-    area->setParticipatesInLayout(false);
-    area->setZIndex(10);
-    area->setCursorShape(WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER);
-    area->setOnPress([pick](const InputArea::PointerData& data) {
-      if (data.pressed && data.button == BTN_LEFT) {
-        pick(data);
-      }
-    });
-    area->setOnMotion([out, pick](const InputArea::PointerData& data) {
-      if (*out != nullptr && (*out)->pressed()) {
-        pick(data);
-      }
-    });
-    *out = static_cast<InputArea*>(addChild(std::move(area)));
-  };
-  makePickArea(&m_svInput, [this](const InputArea::PointerData& data) { applyPickFromSv(data.localX, data.localY); });
-  makePickArea(&m_hueInput, [this](const InputArea::PointerData& data) { applyPickFromHue(data.localX); });
+  m_svInput = addPickArea([this](const InputArea::PointerData& data) { applyPickFromSv(data.localX, data.localY); });
+  m_hueInput = addPickArea([this](const InputArea::PointerData& data) { applyPickFromHue(data.localX); });
+  m_alphaInput = addPickArea([this](const InputArea::PointerData& data) { applyPickFromAlpha(data.localX); });
+  m_alphaInput->setVisible(false);
 
   addChild(
       ui::box({
@@ -172,13 +174,54 @@ ColorPicker::ColorPicker() {
           .configure = [](Box& box) { box.setZIndex(6); },
       })
   );
+  addChild(
+      ui::box({
+          .out = &m_alphaThumb,
+          .visible = false,
+          .participatesInLayout = false,
+          .configure = [](Box& box) { box.setZIndex(6); },
+      })
+  );
 
   applyStyle();
   setFormat(Format::Hex);
 }
 
+bool ColorPicker::dragging() const noexcept {
+  return m_svInput->pressed() || m_hueInput->pressed() || m_alphaInput->pressed();
+}
+
 InputArea* ColorPicker::primaryInputArea() const noexcept {
   return m_hexInput != nullptr ? m_hexInput->inputArea() : nullptr;
+}
+
+InputArea* ColorPicker::addPickArea(std::function<void(const InputArea::PointerData&)> pick) {
+  auto area = std::make_unique<InputArea>();
+  area->setParticipatesInLayout(false);
+  area->setZIndex(10);
+  area->setCursorShape(WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER);
+  InputArea* raw = area.get();
+  area->setOnPress([this, pick](const InputArea::PointerData& data) {
+    if (data.button != BTN_LEFT) {
+      return;
+    }
+    if (data.pressed) {
+      pick(data);
+    } else if (std::exchange(m_pickPending, false)) {
+      notifyCommitted();
+    }
+  });
+  area->setOnMotion([raw, pick](const InputArea::PointerData& data) {
+    if (raw->pressed()) {
+      pick(data);
+    }
+  });
+  area->setOnCancel([this] {
+    if (std::exchange(m_pickPending, false)) {
+      notifyCommitted();
+    }
+  });
+  return static_cast<InputArea*>(addChild(std::move(area)));
 }
 
 void ColorPicker::setScale(float scale) {
@@ -190,6 +233,7 @@ void ColorPicker::setScale(float scale) {
 void ColorPicker::applyStyle() {
   setGap(Style::spaceSm * m_scale);
   m_fieldsRow->setGap(Style::spaceXs * m_scale);
+  m_swatchRow->setGap(Style::spaceXs * m_scale);
   const float fontSize = Style::fontSizeCaption * m_scale;
   const float controlHeight = Style::controlHeightSm * m_scale;
   const float padding = Style::spaceSm * m_scale;
@@ -197,7 +241,8 @@ void ColorPicker::applyStyle() {
   m_formatSelect->setControlHeight(controlHeight);
   m_formatSelect->setHorizontalPadding(padding);
   m_formatSelect->setMinWidth(kFormatSelectWidth * m_scale);
-  for (Input* field : {m_hexInput, m_componentInputs[0], m_componentInputs[1], m_componentInputs[2]}) {
+  m_alphaField->setSize(kAlphaFieldWidth * m_scale, m_alphaField->height());
+  for (Input* field : {m_hexInput, m_componentInputs[0], m_componentInputs[1], m_componentInputs[2], m_alphaField}) {
     field->setFontSize(fontSize);
     field->setControlHeight(controlHeight);
     field->setHorizontalPadding(padding);
@@ -209,13 +254,28 @@ void ColorPicker::applyStyle() {
   const float hueThumb = kHueThumbSize * m_scale;
   m_hueThumb->setSize(hueThumb, hueThumb);
   m_hueThumb->setRadius(hueThumb * 0.5F);
+  m_alphaThumb->setSize(hueThumb, hueThumb);
+  m_alphaThumb->setRadius(hueThumb * 0.5F);
+  for (Box* swatch : m_swatchBoxes) {
+    swatch->setBorder(colorSpecFromRole(ColorRole::Outline), Style::borderWidth * m_scale);
+  }
   m_svImage->setBorder(colorSpecFromRole(ColorRole::Outline), Style::borderWidth * m_scale);
   updateHueThumbStyle();
 }
 
 void ColorPicker::setPickerWidth(float width) {
+  m_fillWidth = false;
   m_pickerWidth = std::max(120.0F, width);
   setMinWidth(m_pickerWidth);
+  markLayoutDirty();
+}
+
+void ColorPicker::setFillWidth() {
+  if (m_fillWidth) {
+    return;
+  }
+  m_fillWidth = true;
+  setMinWidth(0.0F);
   markLayoutDirty();
 }
 
@@ -234,6 +294,7 @@ void ColorPicker::commit(const Color& rgb, Origin origin) {
   m_color = hsv(m_h, m_s, m_v);
   m_color.a = m_alpha;
   m_svTextureDirty = true;
+  m_alphaTextureDirty = true;
   updateHueThumbStyle();
   syncFields(origin);
   markPaintDirty();
@@ -250,6 +311,87 @@ void ColorPicker::notifyChanged() {
   }
 }
 
+void ColorPicker::setOnColorCommitted(std::function<void(const Color&)> callback) {
+  m_onColorCommitted = std::move(callback);
+}
+
+void ColorPicker::notifyCommitted() {
+  if (m_onColorCommitted) {
+    m_onColorCommitted(m_color);
+  }
+}
+
+void ColorPicker::setAlphaEnabled(bool enabled) {
+  if (m_alphaEnabled == enabled) {
+    return;
+  }
+  m_alphaEnabled = enabled;
+  m_alphaImage->setVisible(enabled);
+  m_alphaInput->setVisible(enabled);
+  m_alphaThumb->setVisible(enabled);
+  m_alphaField->setVisible(enabled);
+  m_alphaTextureDirty = true;
+  syncFields(Origin::Pointer);
+  markLayoutDirty();
+}
+
+void ColorPicker::setInputs(Inputs inputs) {
+  if (m_inputs == inputs) {
+    return;
+  }
+  m_inputs = inputs;
+  m_fieldsRow->setVisible(inputs != Inputs::None);
+  m_formatSelect->setVisible(inputs == Inputs::Full);
+  if (inputs == Inputs::Hex) {
+    m_formatSelect->setSelectedIndexSilently(0);
+    setFormat(Format::Hex);
+  }
+  markLayoutDirty();
+}
+
+void ColorPicker::setSwatches(std::vector<Color> swatches) {
+  if (swatches == m_swatches) {
+    return;
+  }
+  m_swatches = std::move(swatches);
+  rebuildSwatches();
+}
+
+void ColorPicker::rebuildSwatches() {
+  while (!m_swatchRow->children().empty()) {
+    (void)m_swatchRow->removeChild(m_swatchRow->children().back().get());
+  }
+  m_swatchBoxes.clear();
+  for (std::size_t i = 0; i < m_swatches.size(); ++i) {
+    auto area = std::make_unique<InputArea>();
+    area->setCursorShape(WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER);
+    area->setEnabled(m_enabled);
+    area->setOnClick([this, i](const InputArea::PointerData& /*data*/) {
+      if (i >= m_swatches.size()) {
+        return;
+      }
+      // A swatch picks the color; the transparency stays where the user set it.
+      commit(m_swatches[i], Origin::Pointer);
+      notifyChanged();
+      notifyCommitted();
+    });
+    Box* box = nullptr;
+    area->addChild(
+        ui::box({
+            .out = &box,
+            .fill = fixedColorSpec(m_swatches[i]),
+            .configure = [this](Box& swatch) {
+              swatch.setBorder(colorSpecFromRole(ColorRole::Outline), Style::borderWidth * m_scale);
+            },
+        })
+    );
+    m_swatchBoxes.push_back(box);
+    m_swatchRow->addChild(std::move(area));
+  }
+  m_swatchRow->setVisible(!m_swatches.empty());
+  markLayoutDirty();
+}
+
 void ColorPicker::setEnabled(bool enabled) {
   if (m_enabled == enabled) {
     return;
@@ -257,8 +399,12 @@ void ColorPicker::setEnabled(bool enabled) {
   m_enabled = enabled;
   m_svInput->setEnabled(enabled);
   m_hueInput->setEnabled(enabled);
+  m_alphaInput->setEnabled(enabled);
+  for (const auto& child : m_swatchRow->children()) {
+    static_cast<InputArea*>(child.get())->setEnabled(enabled);
+  }
   m_formatSelect->setEnabled(enabled);
-  for (Input* field : {m_hexInput, m_componentInputs[0], m_componentInputs[1], m_componentInputs[2]}) {
+  for (Input* field : {m_hexInput, m_componentInputs[0], m_componentInputs[1], m_componentInputs[2], m_alphaField}) {
     field->setEnabled(enabled);
   }
   setOpacity(enabled ? 1.0F : 0.55F);
@@ -308,6 +454,10 @@ void ColorPicker::syncFields(Origin origin) {
       m_componentInputs[i]->setInvalid(false);
     }
   }
+  if (origin != Origin::Alpha) {
+    m_alphaField->setValue(std::format("{}%", static_cast<int>(std::lround(m_alpha * 100.0F))));
+    m_alphaField->setInvalid(false);
+  }
   m_suppressFieldCallbacks = false;
 }
 
@@ -333,6 +483,34 @@ void ColorPicker::rebuildSvTexture(Renderer& renderer) {
       renderer, m_svPixels.data(), m_svPixels.size(), size, size, size * 4, PixmapFormat::RGBA, false
   );
   m_svTextureDirty = false;
+}
+
+void ColorPicker::rebuildAlphaTexture(Renderer& renderer) {
+  const int width = std::max(1, static_cast<int>(std::lround(m_alphaImage->width())));
+  const int height = std::max(1, static_cast<int>(std::lround(m_alphaImage->height())));
+  if (!m_alphaTextureDirty && width == m_alphaTextureWidth && height == m_alphaTextureHeight) {
+    return;
+  }
+  // Built at the strip's own size so the checkerboard cells stay square.
+  const int cell = std::max(1, height / 2);
+  m_alphaPixels.resize(static_cast<std::size_t>(width) * height * 4U);
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      const float t = width > 1 ? static_cast<float>(x) / static_cast<float>(width - 1) : 1.0F;
+      const float checker = ((x / cell) + (y / cell)) % 2 == 0 ? 1.0F : 0.8F;
+      const std::size_t o = (static_cast<std::size_t>(y) * width + static_cast<std::size_t>(x)) * 4U;
+      m_alphaPixels[o + 0U] = toPixel(checker + (m_color.r - checker) * t);
+      m_alphaPixels[o + 1U] = toPixel(checker + (m_color.g - checker) * t);
+      m_alphaPixels[o + 2U] = toPixel(checker + (m_color.b - checker) * t);
+      m_alphaPixels[o + 3U] = 255U;
+    }
+  }
+  m_alphaImage->setSourceRaw(
+      renderer, m_alphaPixels.data(), m_alphaPixels.size(), width, height, width * 4, PixmapFormat::RGBA, false
+  );
+  m_alphaTextureDirty = false;
+  m_alphaTextureWidth = width;
+  m_alphaTextureHeight = height;
 }
 
 void ColorPicker::rebuildHueTexture(Renderer& renderer) {
@@ -368,8 +546,11 @@ void ColorPicker::applyPickFromSv(float localX, float localY) {
   m_v = std::clamp(1.0F - localY / h, 0.0F, 1.0F);
   m_color = hsv(m_h, m_s, m_v);
   m_color.a = m_alpha;
+  m_alphaTextureDirty = true;
+  m_pickPending = true;
   syncFields(Origin::Pointer);
   markPaintDirty();
+  markLayoutDirty();
   positionOverlays();
   notifyChanged();
 }
@@ -381,6 +562,8 @@ void ColorPicker::applyPickFromHue(float localX) {
   }
   m_h = std::clamp(localX / w, 0.0F, 1.0F);
   m_svTextureDirty = true;
+  m_alphaTextureDirty = true;
+  m_pickPending = true;
   m_color = hsv(m_h, m_s, m_v);
   m_color.a = m_alpha;
   syncFields(Origin::Pointer);
@@ -389,6 +572,42 @@ void ColorPicker::applyPickFromHue(float localX) {
   markLayoutDirty();
   positionOverlays();
   notifyChanged();
+}
+
+void ColorPicker::applyPickFromAlpha(float localX) {
+  const float w = m_alphaImage->width();
+  if (w <= 0.0F) {
+    return;
+  }
+  m_alpha = std::clamp(localX / w, 0.0F, 1.0F);
+  m_color.a = m_alpha;
+  m_pickPending = true;
+  syncFields(Origin::Pointer);
+  markPaintDirty();
+  positionOverlays();
+  notifyChanged();
+}
+
+void ColorPicker::onAlphaInputChange() {
+  if (m_suppressFieldCallbacks) {
+    return;
+  }
+  std::string_view text = m_alphaField->value();
+  if (text.ends_with('%')) {
+    text.remove_suffix(1);
+  }
+  const auto percent = parseComponent(text, 0, 100);
+  m_alphaField->setInvalid(!percent.has_value() && !text.empty());
+  if (!percent.has_value()) {
+    return;
+  }
+  m_alpha = static_cast<float>(*percent) / 100.0F;
+  m_color.a = m_alpha;
+  syncFields(Origin::Alpha);
+  markPaintDirty();
+  markLayoutDirty();
+  notifyChanged();
+  notifyCommitted();
 }
 
 void ColorPicker::applyHexInput(const std::string& value) {
@@ -403,6 +622,7 @@ void ColorPicker::applyHexInput(const std::string& value) {
   m_hexInput->setInvalid(false);
   commit(parsed, Origin::Hex);
   notifyChanged();
+  notifyCommitted();
 }
 
 void ColorPicker::onHexInputChange(const std::string& value) {
@@ -451,6 +671,7 @@ void ColorPicker::onComponentInputChange() {
   }
   commit(next, Origin::Components);
   notifyChanged();
+  notifyCommitted();
 }
 
 void ColorPicker::positionOverlays() {
@@ -458,6 +679,8 @@ void ColorPicker::positionOverlays() {
   m_svInput->setFrameSize(m_svImage->width(), m_svImage->height());
   m_hueInput->setPosition(m_hueImage->x(), m_hueImage->y());
   m_hueInput->setFrameSize(m_hueImage->width(), m_hueImage->height());
+  m_alphaInput->setPosition(m_alphaImage->x(), m_alphaImage->y());
+  m_alphaInput->setFrameSize(m_alphaImage->width(), m_alphaImage->height());
 
   const float planeW = m_svImage->width();
   const float planeH = m_svImage->height();
@@ -471,6 +694,17 @@ void ColorPicker::positionOverlays() {
       m_hueImage->x() + stripW - m_hueThumb->width()
   );
   m_hueThumb->setPosition(x, m_hueImage->y() + (m_hueImage->height() - m_hueThumb->height()) * 0.5F);
+  if (m_alphaEnabled) {
+    const float alphaW = m_alphaImage->width();
+    const float alphaX = util::clampOrdered(
+        m_alphaImage->x() + m_alpha * alphaW - m_alphaThumb->width() * 0.5F, m_alphaImage->x(),
+        m_alphaImage->x() + alphaW - m_alphaThumb->width()
+    );
+    m_alphaThumb->setPosition(alphaX, m_alphaImage->y() + (m_alphaImage->height() - m_alphaThumb->height()) * 0.5F);
+    // The thumb shows the color itself; the strip behind it shows the transparency.
+    m_alphaThumb->setFill(rgba(m_color.r, m_color.g, m_color.b, 1.0F));
+    m_alphaThumb->setBorder(rgba(1.0F, 1.0F, 1.0F, 1.0F), 2.0F * m_scale);
+  }
 }
 
 void ColorPicker::doLayout(Renderer& renderer) {
@@ -478,7 +712,9 @@ void ColorPicker::doLayout(Renderer& renderer) {
   const float stripH = kStripHeight * m_scale;
   // Read every layout so a corner-radius config change applies without a rebuild.
   m_svImage->setRadius(Style::scaledRadiusMd(m_scale));
-  m_hueImage->setRadius(std::min(Style::scaledRadiusMd(m_scale), stripH * 0.5F));
+  const float stripRadius = std::min(Style::scaledRadiusMd(m_scale), stripH * 0.5F);
+  m_hueImage->setRadius(stripRadius);
+  m_alphaImage->setRadius(stripRadius);
 
   m_svImage->setSize(pw, std::round(pw * kPlaneAspect));
   m_svImage->layout(renderer);
@@ -486,16 +722,40 @@ void ColorPicker::doLayout(Renderer& renderer) {
   m_hueImage->setSize(pw, stripH);
   m_hueImage->layout(renderer);
   rebuildHueTexture(renderer);
+  if (m_alphaEnabled) {
+    m_alphaImage->setSize(pw, stripH);
+    m_alphaImage->layout(renderer);
+    rebuildAlphaTexture(renderer);
+  }
+  if (!m_swatchBoxes.empty()) {
+    // Swatches shrink to fit rather than wrap, so a long list stays one row.
+    const float gap = Style::spaceXs * m_scale;
+    const auto count = static_cast<float>(m_swatchBoxes.size());
+    const float size = std::min(kSwatchSize * m_scale, (pw - gap * (count - 1.0F)) / count);
+    for (Box* swatch : m_swatchBoxes) {
+      swatch->setSize(size, size);
+      swatch->setRadius(Style::scaledRadiusSm(m_scale));
+      swatch->parent()->setSize(size, size);
+    }
+  }
 
   Flex::doLayout(renderer);
   positionOverlays();
 }
 
 LayoutSize ColorPicker::doMeasure(Renderer& renderer, const LayoutConstraints& constraints) {
+  if (m_fillWidth && constraints.hasMaxWidth && constraints.maxWidth > 0.0F) {
+    m_pickerWidth = std::max(120.0F, constraints.maxWidth);
+  }
   return measureByLayout(renderer, constraints);
 }
 
-void ColorPicker::doArrange(Renderer& renderer, const LayoutRect& rect) { arrangeByLayout(renderer, rect); }
+void ColorPicker::doArrange(Renderer& renderer, const LayoutRect& rect) {
+  if (m_fillWidth && rect.width > 0.0F) {
+    m_pickerWidth = std::max(120.0F, rect.width);
+  }
+  arrangeByLayout(renderer, rect);
+}
 
 ColorPickerSheet::ColorPickerSheet(float chromeScale) : m_chromeScale(std::max(0.1F, chromeScale)) {
   setDirection(FlexDirection::Vertical);

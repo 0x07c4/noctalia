@@ -5,6 +5,7 @@
 #include <charconv>
 #include <cmath>
 #include <cstdio>
+#include <format>
 #include <numbers>
 #include <string>
 #include <system_error>
@@ -205,6 +206,11 @@ std::string formatRgbHex(const Color& color) {
   char buffer[16];
   std::snprintf(buffer, sizeof(buffer), "#%02X%02X%02X", toByte(color.r), toByte(color.g), toByte(color.b));
   return std::string(buffer);
+}
+
+std::string formatRgbaHex(const Color& color) {
+  return formatRgbHex(color)
+      + std::format("{:02X}", static_cast<int>(std::lround(std::clamp(color.a, 0.0F, 1.0F) * 255.0F)));
 }
 
 bool tryParseHexColor(std::string_view input, Color& out) {

@@ -9,6 +9,7 @@
 #include "render/scene/input_area.h"
 #include "ui/controls/box.h"
 #include "ui/controls/button.h"
+#include "ui/controls/color_picker.h"
 #include "ui/controls/drag_source.h"
 #include "ui/controls/drop_zone.h"
 #include "ui/controls/flex.h"
@@ -503,6 +504,10 @@ namespace ui {
           "radius",        "onPointerMove", "onPointerDown", "onPointerUp", "onPointerCancel", "onRightClick",
           "onMiddleClick", "onScroll",      "onTextInput",   "onKeyEvent",
       };
+      static const std::unordered_set<std::string> kColorPicker = {
+          "width",  "flexGrow", "opacity", "visible",  "value",       "alpha",
+          "inputs", "swatches", "enabled", "onChange", "onChangeEnd",
+      };
       static const std::unordered_set<std::string> kSeparator = {"width",   "height",  "flexGrow",
                                                                  "opacity", "visible", "thickness",
                                                                  "color",   "spacing", "orientation"};
@@ -568,6 +573,9 @@ namespace ui {
       if (type == "pixel_stream") {
         return kPixelStream;
       }
+      if (type == "color_picker") {
+        return kColorPicker;
+      }
       if (type == "separator") {
         return kSeparator;
       }
@@ -624,6 +632,7 @@ namespace ui {
     // Last-wired ui.pixelStream callback targets, indexed by PixelStreamCallback.
     std::array<std::string, kStreamCallbackCount> pixelStreamCallbackNames;
     std::string imagePath;              // last-applied resolved image source
+    std::string colorValue;             // last-applied colorPicker value prop
     std::string lastText;               // markdown source cache - setMarkdown re-parses, only call on change
     std::string revealKey;              // last-applied scroll revealKey, empty while no child carries it
     float lastMarkdownScale = 0.0F;     // content scale baked into the parsed markdown
@@ -744,6 +753,9 @@ namespace ui {
     }
     if (desired.type == "pixel_stream") {
       return std::make_unique<PixelStreamView>();
+    }
+    if (desired.type == "color_picker") {
+      return std::make_unique<ColorPicker>();
     }
     if (desired.type == "separator") {
       return std::make_unique<Separator>();
@@ -1120,6 +1132,102 @@ namespace ui {
       m_pointerOwner = nullptr;
       m_pointerLeaveCallback.clear();
       m_pointerStreamKey.clear();
+    }
+  }
+
+  void UiTreeReconciler::applyColorPickerProps(Slot& slot, const UiTreeNode& desired, ColorPicker& picker) {
+    constexpr std::size_t kMaxSwatches = 16;
+    picker.setScale(m_scale);
+    if (const double* width = numProp(desired, "width")) {
+      picker.setPickerWidth(static_cast<float>(*width) * m_scale);
+    } else {
+      picker.setFillWidth();
+    }
+
+    const bool* alpha = boolProp(desired, "alpha");
+    const bool withAlpha = alpha != nullptr && *alpha;
+    picker.setAlphaEnabled(withAlpha);
+
+    ColorPicker::Inputs inputs = ColorPicker::Inputs::Full;
+    if (const std::string* mode = strProp(desired, "inputs")) {
+      if (*mode == "hex") {
+        inputs = ColorPicker::Inputs::Hex;
+      } else if (*mode == "none") {
+        inputs = ColorPicker::Inputs::None;
+      } else if (*mode != "full") {
+        kLog.warn("ui tree: colorPicker has unknown inputs '{}'", *mode);
+      }
+    }
+    picker.setInputs(inputs);
+
+    std::vector<Color> swatches;
+    if (const std::vector<std::string>* entries = strArrayProp(desired, "swatches")) {
+      for (const std::string& entry : *entries) {
+        if (swatches.size() == kMaxSwatches) {
+          kLog.warn("ui tree: colorPicker keeps the first {} swatches", kMaxSwatches);
+          break;
+        }
+        Color color{};
+        if (tryParseHexColor(entry, color)) {
+          swatches.push_back(color);
+        } else {
+          kLog.warn("ui tree: colorPicker skips invalid swatch '{}'", entry);
+        }
+      }
+    }
+    picker.setSwatches(std::move(swatches));
+
+    // Reads the picker's current alpha mode, so callbacks wired earlier stay correct when it changes.
+    const auto format = [owner = &picker](const Color& color) {
+      return owner->alphaEnabled() ? formatRgbaHex(color) : formatRgbHex(color);
+    };
+    // Like a slider's value: applied only when the prop itself changes, so re-applying an
+    // unchanged tree never undoes the user's edits, and never mid-drag.
+    if (const std::string* value = strProp(desired, "value"); value != nullptr && !picker.dragging()) {
+      Color color{};
+      if (*value == slot.colorValue) {
+        // Unchanged since the last render.
+      } else if (!tryParseHexColor(*value, color)) {
+        kLog.warn("ui tree: colorPicker has invalid value '{}'", *value);
+        slot.colorValue = *value;
+      } else {
+        slot.colorValue = *value;
+        if (!withAlpha) {
+          color.a = 1.0F;
+        }
+        // Echoing onChange back is a no-op, so it never rewrites the field being typed in.
+        if (format(color) != format(picker.color())) {
+          picker.setColor(color);
+        }
+      }
+    }
+    if (const bool* enabled = boolProp(desired, "enabled")) {
+      picker.setEnabled(*enabled);
+    }
+
+    const std::string* onChange = callbackProp(desired, "onChange");
+    const std::string changeName = onChange != nullptr ? *onChange : std::string{};
+    if (changeName != slot.callbackName) {
+      slot.callbackName = changeName;
+      picker.setOnColorChanged(
+          changeName.empty() ? std::function<void(const Color&)>{} : [this, changeName, format](const Color& color) {
+            if (m_sink) {
+              m_sink(ControlCallback{changeName, format(color), "", true});
+            }
+          }
+      );
+    }
+    const std::string* onChangeEnd = callbackProp(desired, "onChangeEnd");
+    const std::string endName = onChangeEnd != nullptr ? *onChangeEnd : std::string{};
+    if (endName != slot.dragEndCallbackName) {
+      slot.dragEndCallbackName = endName;
+      picker.setOnColorCommitted(
+          endName.empty() ? std::function<void(const Color&)>{} : [this, endName, format](const Color& color) {
+            if (m_sink) {
+              m_sink(ControlCallback{endName, format(color)});
+            }
+          }
+      );
     }
   }
 
@@ -1555,6 +1663,11 @@ namespace ui {
       } else {
         glyph->setColor(m_defaultGlyphColor);
       }
+      return;
+    }
+
+    if (desired.type == "color_picker") {
+      applyColorPickerProps(slot, desired, *static_cast<ColorPicker*>(node));
       return;
     }
 
