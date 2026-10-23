@@ -10,7 +10,7 @@ Before contributing, read our [ethos](https://noctalia.dev/ethos) to understand 
 
 - Direct Wayland + OpenGL ES only -- no toolkit overhead
 - Minimal scene graph, domain-specific to shell UI
-- Packaging should work across all major Linux distros: Arch, NixOS, Fedora, Gentoo, Debian, Void, OpenSuse
+- Packaging should work across all major Linux distros: Arch, NixOS, Fedora, Gentoo, Debian, Void, openSUSE
 
 ## Stack
 
