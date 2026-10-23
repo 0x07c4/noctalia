@@ -113,7 +113,7 @@ This applies to identity and configuration, not runtime resilience. Graceful deg
 
 ### User documentation
 
-End-user documentation lives in [`docs/user/`](docs/user/) (MDX), with images under `docs/assets/`. Any change that adds, removes, or changes user-facing configuration or behavior updates the relevant page in the same commit as the code.
+End-user documentation lives in [`docs/user/`](docs/user/) (MDX), with images under `docs/assets/`. Any change that adds, removes, or changes user-facing configuration, or behavior users need to know about to use or configure the shell, updates the relevant page in the same commit as the code. `docs/user/` is user documentation, not a feature changelog: don't document purely cosmetic or self-explanatory UI additions.
 
 The documentation site is generated from these files by `tools/sync-docs.sh`, which copies `docs/user/**/*.mdx` into the docs site checkout and deletes pages that no longer exist here. Never edit the generated copies; the next sync overwrites them.
 
