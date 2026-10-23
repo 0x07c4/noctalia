@@ -1,11 +1,14 @@
 #include "ui/controls/color_picker.h"
 
+#include "core/text_clipboard.h"
 #include "cursor-shape-v1-client-protocol.h"
 #include "i18n/i18n.h"
 #include "render/core/renderer.h"
 #include "render/core/texture_manager.h"
 #include "render/scene/input_area.h"
 #include "ui/builders.h"
+#include "ui/controls/button.h"
+#include "ui/controls/input.h"
 #include "ui/controls/select.h"
 #include "ui/palette.h"
 #include "ui/style.h"
@@ -147,6 +150,21 @@ ColorPicker::ColorPicker() {
           .visible = false,
       })
   );
+  fields->addChild(
+      ui::button({
+          .out = &m_copyButton,
+          .glyph = "copy",
+          .glyphSize = Style::fontSizeCaption,
+          .controlHeight = Style::controlHeightSm,
+          .variant = ButtonVariant::Ghost,
+          .tooltip = i18n::tr("ui.dialogs.color-picker.copy"),
+          .onClick = [this]() {
+            if (TextClipboard* clipboard = Input::textClipboard(); clipboard != nullptr) {
+              clipboard->setClipboardText(colorText());
+            }
+          },
+      })
+  );
   m_alphaField->setOnChange([this](const std::string& /*value*/) { onAlphaInputChange(); });
   m_hexInput->setOnChange([this](const std::string& value) { onHexInputChange(value); });
   m_hexInput->setOnSubmit([this](const std::string& value) { applyHexInput(sanitizeHexFieldInput(value)); });
@@ -247,6 +265,8 @@ void ColorPicker::applyStyle() {
     field->setControlHeight(controlHeight);
     field->setHorizontalPadding(padding);
   }
+  m_copyButton->setGlyphSize(fontSize);
+  m_copyButton->setControlHeight(controlHeight);
   const float svThumb = kSvThumbSize * m_scale;
   m_svThumb->setSize(svThumb, svThumb);
   m_svThumb->setRadius(svThumb * 0.5F);
@@ -407,6 +427,7 @@ void ColorPicker::setEnabled(bool enabled) {
   for (Input* field : {m_hexInput, m_componentInputs[0], m_componentInputs[1], m_componentInputs[2], m_alphaField}) {
     field->setEnabled(enabled);
   }
+  m_copyButton->setEnabled(enabled);
   setOpacity(enabled ? 1.0F : 0.55F);
 }
 
@@ -432,23 +453,7 @@ void ColorPicker::syncFields(Origin origin) {
     m_hexInput->setInvalid(false);
   }
   if (origin != Origin::Components && m_format != Format::Hex) {
-    std::array<int, 3> values{};
-    if (m_format == Format::Rgb) {
-      values = {toByte(m_color.r), toByte(m_color.g), toByte(m_color.b)};
-    } else {
-      float h = 0.0F;
-      float s = 0.0F;
-      float l = 0.0F;
-      rgbToHsl(m_color, h, s, l);
-      // A gray reports the hue the strip still shows, so switching back keeps it.
-      if (s <= 1e-4F) {
-        h = m_h * 360.0F;
-      }
-      values = {
-          static_cast<int>(std::lround(h)) % 360, static_cast<int>(std::lround(s * 100.0F)),
-          static_cast<int>(std::lround(l * 100.0F))
-      };
-    }
+    const std::array<int, 3> values = componentValues();
     for (std::size_t i = 0; i < values.size(); ++i) {
       m_componentInputs[i]->setValue(std::to_string(values[i]));
       m_componentInputs[i]->setInvalid(false);
@@ -459,6 +464,37 @@ void ColorPicker::syncFields(Origin origin) {
     m_alphaField->setInvalid(false);
   }
   m_suppressFieldCallbacks = false;
+}
+
+std::array<int, 3> ColorPicker::componentValues() const {
+  if (m_format != Format::Hsl) {
+    return {toByte(m_color.r), toByte(m_color.g), toByte(m_color.b)};
+  }
+  float h = 0.0F;
+  float s = 0.0F;
+  float l = 0.0F;
+  rgbToHsl(m_color, h, s, l);
+  // A gray reports the hue the strip still shows, so switching back keeps it.
+  if (s <= 1e-4F) {
+    h = m_h * 360.0F;
+  }
+  return {
+      static_cast<int>(std::lround(h)) % 360, static_cast<int>(std::lround(s * 100.0F)),
+      static_cast<int>(std::lround(l * 100.0F))
+  };
+}
+
+// The color in the format the fields show, as CSS notation.
+std::string ColorPicker::colorText() const {
+  if (m_format == Format::Hex) {
+    return m_alphaEnabled ? formatRgbaHex(m_color) : formatRgbHex(m_color);
+  }
+  const auto [a, b, c] = componentValues();
+  const std::string alpha = m_alphaEnabled ? std::format(", {}%", static_cast<int>(std::lround(m_alpha * 100.0F))) : "";
+  if (m_format == Format::Rgb) {
+    return std::format("rgb({}, {}, {}{})", a, b, c, alpha);
+  }
+  return std::format("hsl({}, {}%, {}%{})", a, b, c, alpha);
 }
 
 void ColorPicker::rebuildSvTexture(Renderer& renderer) {

@@ -79,6 +79,7 @@ public:
 
   // Set once at application startup; all Input instances use this for Ctrl+C/X/V.
   static void setTextClipboard(TextClipboard* clipboard) noexcept;
+  [[nodiscard]] static TextClipboard* textClipboard() noexcept;
   /// Submit invokes onSubmit only when this matcher returns true (Application wires ConfigService validate keybinds).
   static void setValidateKeyMatcher(std::function<bool(std::uint32_t sym, std::uint32_t modifiers)> matcher) noexcept;
   static void setPasswordMaskStyle(PasswordMaskStyle style) noexcept;

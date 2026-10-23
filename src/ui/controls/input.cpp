@@ -627,6 +627,8 @@ void Input::setEnabled(bool enabled) {
 
 void Input::setTextClipboard(TextClipboard* clipboard) noexcept { g_clipboard = clipboard; }
 
+TextClipboard* Input::textClipboard() noexcept { return g_clipboard; }
+
 void Input::setValidateKeyMatcher(std::function<bool(std::uint32_t, std::uint32_t)> matcher) noexcept {
   g_validateKeyMatcher = std::move(matcher);
 }

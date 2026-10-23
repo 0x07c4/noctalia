@@ -5135,6 +5135,7 @@
     },
     "dialogs": {
       "color-picker": {
+        "copy": "Copy color code in the current format",
         "title": "Color"
       },
       "file": {
