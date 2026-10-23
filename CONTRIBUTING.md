@@ -201,7 +201,7 @@ src/
   hooks/            User hook state and hook manager
   i18n/             Translation catalog and language tag handling
   idle/             Idle manager, inhibitor, grace overlay
-  ipc/              IPC client/service and CLI command parsing
+  ipc/              IPC client/service, CLI command parsing, plugin pixel stream companion protocol
   launcher/         Launcher providers (apps, emoji, calculator, sessions, windows, plugins)
   net/              HTTP client, URI parsing, URL opening
   notification/     Notification model, manager, filtering, history
