@@ -22,6 +22,7 @@
 #include "shell/profile/avatar_path.h"
 #include "shell/wallpaper/wallpaper.h"
 #include "system/distro_info.h"
+#include "system/hardware_info.h"
 #include "system/weather_service.h"
 #include "time/time_format.h"
 #include "ui/builders.h"
@@ -120,6 +121,11 @@ namespace {
   std::string userHostLine() { return std::format("{}@{}", sessionUserName(), hostName()); }
 
   std::string noctaliaVersionLine() { return std::format("Noctalia {}", noctalia::build_info::displayVersion()); }
+
+  // The compositor's own version line already names it; fall back to the detected name.
+  std::string compositorLine(const std::optional<std::string>& versionLine) {
+    return versionLine.has_value() && !versionLine->empty() ? *versionLine : compositorLabel();
+  }
 
   void applyHomeCardStyle(Flex& card, float scale, float fillOpacity) {
     applySectionCardStyle(card, scale, fillOpacity);
@@ -349,6 +355,13 @@ std::unique_ptr<Flex> HomeTab::create() {
           ui::label({
               .out = &m_userVersion,
               .text = noctaliaVersionLine(),
+              .fontSize = Style::fontSizeCaption * scale,
+              .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
+              .configure = configureUserDetailLabel,
+          }),
+          ui::label({
+              .out = &m_userCompositor,
+              .text = compositorLine(std::nullopt),
               .fontSize = Style::fontSizeCaption * scale,
               .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
               .configure = configureUserDetailLabel,
@@ -825,7 +838,7 @@ void HomeTab::doLayout(Renderer& renderer, float contentWidth, float bodyHeight)
 
   if (m_userCard != nullptr) {
     const float userWrap = innerWidth(m_userCard);
-    for (Label* label : {m_userHost, m_userUptime, m_userVersion}) {
+    for (Label* label : {m_userHost, m_userUptime, m_userVersion, m_userCompositor}) {
       if (label != nullptr) {
         label->setMaxWidth(userWrap);
         label->setMaxLines(1);
@@ -1311,6 +1324,7 @@ void HomeTab::onClose() {
   m_userHost = nullptr;
   m_userUptime = nullptr;
   m_userVersion = nullptr;
+  m_userCompositor = nullptr;
   m_settingsButton = nullptr;
   m_sessionButton = nullptr;
   m_userCardKeyboardArea = nullptr;
@@ -1375,7 +1389,7 @@ void HomeTab::syncScaledFonts() {
   if (m_weatherLine != nullptr) {
     m_weatherLine->setFontSize(Style::fontSizeCaption * s);
   }
-  for (Label* label : {m_userHost, m_userUptime, m_userVersion}) {
+  for (Label* label : {m_userHost, m_userUptime, m_userVersion, m_userCompositor}) {
     if (label != nullptr) {
       label->setFontSize(Style::fontSizeCaption * s);
     }
@@ -1444,6 +1458,17 @@ void HomeTab::sync(Renderer& renderer) {
   }
   if (m_userVersion != nullptr) {
     m_userVersion->setText(noctaliaVersionLine());
+  }
+  if (m_userCompositor != nullptr) {
+    const std::weak_ptr<void> aliveGuard = m_aliveGuard;
+    const auto versionLine = compositorVersionLine([this, aliveGuard]() {
+      if (aliveGuard.expired() || m_userCompositor == nullptr) {
+        return;
+      }
+      m_userCompositor->setText(compositorLine(compositorVersionLine({})));
+      PanelManager::instance().requestLayout();
+    });
+    m_userCompositor->setText(compositorLine(versionLine));
   }
 
   const bool weatherEnabled = m_weather != nullptr && m_weather->enabled();

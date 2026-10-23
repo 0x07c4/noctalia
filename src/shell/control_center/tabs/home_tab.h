@@ -114,6 +114,7 @@ private:
   Label* m_userHost = nullptr;
   Label* m_userUptime = nullptr;
   Label* m_userVersion = nullptr;
+  Label* m_userCompositor = nullptr;
   Button* m_settingsButton = nullptr;
   Button* m_sessionButton = nullptr;
   InputArea* m_userCardKeyboardArea = nullptr;
