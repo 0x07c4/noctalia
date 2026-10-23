@@ -132,6 +132,16 @@ void rgbToHsv(const Color& rgb, float& h, float& s, float& v) {
   h = h - std::floor(h);
 }
 
+void rgbToHsl(const Color& rgb, float& h, float& s, float& l) {
+  float v = 0.0F;
+  float sv = 0.0F;
+  rgbToHsv(rgb, h, sv, v);
+  h *= 360.0F;
+  l = v * (1.0F - sv * 0.5F);
+  const float range = std::min(l, 1.0F - l);
+  s = range <= 1e-6F ? 0.0F : (v - l) / range;
+}
+
 Color lerpHsv(const Color& a, const Color& b, float t) {
   float h0, s0, v0;
   rgbToHsv(a, h0, s0, v0);

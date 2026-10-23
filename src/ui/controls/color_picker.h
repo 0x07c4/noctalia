@@ -3,8 +3,10 @@
 #include "render/core/color.h"
 #include "ui/controls/flex.h"
 
+#include <array>
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <vector>
 
 class Box;
@@ -13,8 +15,10 @@ class Input;
 class InputArea;
 class Label;
 class Renderer;
+class Select;
 
-// HSV color picker: continuous SV plane (RGBA texture), hue strip, Hex + R/G/B inputs.
+// HSV color picker: a 5:3 saturation/value plane and a hue strip (both textures), then a
+// row with a format switch (Hex, RGB, HSL) and the fields of the chosen format.
 class ColorPicker : public Flex {
 public:
   ColorPicker();
@@ -34,20 +38,28 @@ public:
   [[nodiscard]] InputArea* primaryInputArea() const noexcept;
 
 private:
+  enum class Format : std::uint8_t { Hex, Rgb, Hsl };
+  // Which fields a change came from; those fields are left alone while the user types.
+  enum class Origin : std::uint8_t { Pointer, Hex, Components };
+
   void doLayout(Renderer& renderer) override;
   LayoutSize doMeasure(Renderer& renderer, const LayoutConstraints& constraints) override;
   void doArrange(Renderer& renderer, const LayoutRect& rect) override;
 
-  [[nodiscard]] static Color colorAtSv(float h, float s, float v);
   void rebuildSvTexture(Renderer& renderer);
-  void syncFieldsFromColor();
+  void rebuildHueTexture(Renderer& renderer);
+  void applyStyle();
+  void setFormat(Format format);
+  void syncFields(Origin origin);
   void positionOverlays();
   void updateHueThumbStyle();
   void applyPickFromSv(float localX, float localY);
   void applyPickFromHue(float localX);
   void onHexInputChange(const std::string& value);
   void applyHexInput(const std::string& value);
-  void onRgbInputChange();
+  void onComponentInputChange();
+  void commit(const Color& rgb, Origin origin);
+  void notifyChanged();
 
   float m_scale = 1.0F;
   float m_pickerWidth = 240.0F;
@@ -56,19 +68,21 @@ private:
   float m_v = 1.0F;
   float m_alpha = 1.0F;
   Color m_color = rgba(1, 1, 1, 1);
+  Format m_format = Format::Hex;
   bool m_suppressFieldCallbacks = false;
 
   static constexpr int kSvTextureSize = 192;
+  static constexpr int kHueTextureWidth = 256;
   Image* m_svImage = nullptr;
   std::vector<std::uint8_t> m_svPixels;
   bool m_svTextureDirty = true;
+  Image* m_hueImage = nullptr;
+  bool m_hueTextureReady = false;
 
-  Flex* m_hueStrip = nullptr;
   Flex* m_fieldsRow = nullptr;
+  Select* m_formatSelect = nullptr;
   Input* m_hexInput = nullptr;
-  Input* m_rInput = nullptr;
-  Input* m_gInput = nullptr;
-  Input* m_bInput = nullptr;
+  std::array<Input*, 3> m_componentInputs{};
 
   InputArea* m_svInput = nullptr;
   InputArea* m_hueInput = nullptr;
