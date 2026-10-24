@@ -808,9 +808,7 @@ std::string ConfigService::buildMergedUserConfig() const {
   return buildMergedUserConfigFromSources(m_configDir, m_overridesPath);
 }
 
-std::string ConfigService::buildEffectiveConfig() const {
-  return formatToml(config_export::serialize(m_config)) + "\n";
-}
+std::string ConfigService::buildEffectiveConfig() const { return formatToml(*m_configTable) + "\n"; }
 
 std::string ConfigService::buildMergedUserConfigFromSources(
     std::string_view configDir, std::string_view settingsPath, std::string* error
@@ -1560,6 +1558,7 @@ void ConfigService::loadAll() {
     m_monitorWallpaperPaths.clear();
     updateLegacyConfigIssues({});
     setConfigParseError(m_overridesParseError);
+    m_configTable = std::make_shared<const toml::table>(config_export::serialize(m_config));
     refreshIncludeWatches();
     return;
   }
@@ -1648,6 +1647,8 @@ void ConfigService::loadAll() {
   // Included files may live in subdirectories or absolute paths outside the config
   // dir, and the include set can change on every reload — reconcile their watches.
   refreshIncludeWatches();
+
+  m_configTable = std::make_shared<const toml::table>(config_export::serialize(m_config));
 }
 
 void ConfigService::parseConfigTable(
@@ -1922,6 +1923,64 @@ bool ConfigService::matchesKeybind(KeybindAction action, std::uint32_t sym, std:
 void ConfigService::registerIpc(IpcService& ipc) {
   ipc.bind(noctalia::cli::msg::configReload, [this](const std::string&) -> std::string {
     forceReload();
+    return "ok\n";
+  });
+
+  ipc.bind(noctalia::cli::msg::configGet, [this](const std::string& args) -> std::string {
+    auto tokens = StringUtils::splitShellWords(args);
+    if (!tokens || tokens->size() != 1) {
+      return "error: expected exactly one argument: <path>\n";
+    }
+    const auto& path = (*tokens)[0];
+    const auto node = m_configTable->at_path(path);
+    if (!node) {
+      return std::string("error: path not found: ") + path + "\n";
+    }
+    std::ostringstream oss;
+    oss << node << "\n";
+    return oss.str();
+  });
+
+  ipc.bind(noctalia::cli::msg::configSet, [this](const std::string& args) -> std::string {
+    auto tokens = StringUtils::splitShellWords(args);
+    if (!tokens || tokens->size() < 2) {
+      return "error: expected arguments: <path> <value>\n";
+    }
+    const std::string path = (*tokens)[0];
+    const std::string value = StringUtils::trim(args.substr(path.size()));
+
+    const std::string deltaString = path + "=" + value;
+    toml::table delta;
+    toml::table candidateOverrides = m_overridesTable;
+    try {
+      delta = toml::parse(deltaString);
+    } catch (const toml::parse_error& e) {
+      return std::format("error: invalid TOML value: {}: {}\n", deltaString, e.description());
+    }
+    deepMerge(candidateOverrides, delta);
+
+    const auto baselineDiagnostics = diagnosticsForOverrides(m_overridesTable);
+    const auto candidateDiagnostics = diagnosticsForOverrides(candidateOverrides);
+    const auto introduced = candidateDiagnostics.introducedDiagnosticsComparedTo(baselineDiagnostics);
+    if (!introduced.entries.empty()) {
+      std::ostringstream oss;
+      oss << "error: ";
+      bool first = true;
+      for (const auto& entry : introduced.entries) {
+        if (!first) {
+          oss << "; ";
+        }
+        first = false;
+        oss << entry.describe();
+      }
+      oss << "\n";
+      return oss.str();
+    }
+    if (!commitOverrideTable(candidateOverrides, nullptr)) {
+      return std::format(
+          "error: {}\n", m_lastMutationError.empty() ? "failed to write config overrides" : m_lastMutationError
+      );
+    }
     return "ok\n";
   });
 }

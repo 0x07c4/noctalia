@@ -130,6 +130,13 @@ namespace noctalia::cli {
   inline constexpr std::array kMsgClipboardCopyPositionals{
       Positional{"text", {}, {}, true, false, false},
   };
+  inline constexpr std::array kMsgConfigGetPositionals{
+      Positional{"path", "Dotted config path (e.g. theme.shell_mode)", {}, true, false, false},
+  };
+  inline constexpr std::array kMsgConfigSetPositionals{
+      Positional{"path", "Dotted config path (e.g. theme.shell_mode)", {}, true, false, false},
+      Positional{"value", "TOML value; quote strings (e.g. \"'light'\")", {}, true, false, false},
+  };
   inline constexpr std::array kMsgEffectsProfileSetPositionals{
       Positional{"kind", {}, kMsgEffectsProfileSetKindChoices, true, false, false},
       Positional{"profile", {}, {}, true, false, false},
@@ -456,6 +463,10 @@ namespace noctalia::cli {
         kMsgColorSchemeSetSubcommands,
         false
     };
+    inline constexpr Command configGet{"config-get", "Get a config value",     {}, {},
+                                       {},           kMsgConfigGetPositionals, {}, false};
+    inline constexpr Command configSet{"config-set", "Set a config value",     {}, {},
+                                       {},           kMsgConfigSetPositionals, {}, false};
     inline constexpr Command configReload{"config-reload", "Reload the config file", {}, {}, {}, {}, {}, false};
     inline constexpr Command desktopWidgetsEdit{
         "desktop-widgets-edit", "Open the desktop widgets editor", {}, {}, {}, {}, {}, false
@@ -940,6 +951,8 @@ namespace noctalia::cli {
       msg::clipboardText,
       msg::colorSchemeGet,
       msg::colorSchemeSet,
+      msg::configGet,
+      msg::configSet,
       msg::configReload,
       msg::desktopWidgetsEdit,
       msg::desktopWidgetsExit,

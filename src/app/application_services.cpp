@@ -3,7 +3,6 @@
 #include "application_internal.h"
 #include "compositors/compositor_detect.h"
 #include "compositors/umbriel/umbriel_audio_provider.h"
-#include "config/config_export.h"
 #include "config/config_types.h"
 #include "core/build_info.h"
 #include "core/deferred_call.h"
@@ -586,18 +585,14 @@ void Application::initStyleThemeAndWayland() {
   applyPasswordMaskStyle();
   applyInputConfig();
   m_httpClient.setOfflineMode(m_configService.config().shell.offlineMode);
-  m_scriptApi.setConfigSnapshot(
-      std::make_shared<const toml::table>(config_export::serialize(m_configService.config()))
-  );
+  m_scriptApi.setConfigSnapshot(m_configService.configTable());
   m_configService.addReloadCallback(applyMotionConfig);
   m_configService.addReloadCallback(applyStyleConfig);
   m_configService.addReloadCallback(applyPasswordMaskStyle);
   m_configService.addReloadCallback(applyInputConfig);
   m_configService.addReloadCallback([this]() {
     m_httpClient.setOfflineMode(m_configService.config().shell.offlineMode);
-    m_scriptApi.setConfigSnapshot(
-        std::make_shared<const toml::table>(config_export::serialize(m_configService.config()))
-    );
+    m_scriptApi.setConfigSnapshot(m_configService.configTable());
   });
   m_configService.addReloadCallback([this]() { syncClipboardService(); });
   m_configService.addReloadCallback([this]() { syncScreenTimeService(); });

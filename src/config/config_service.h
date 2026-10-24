@@ -48,6 +48,7 @@ public:
   ConfigService& operator=(const ConfigService&) = delete;
 
   [[nodiscard]] const Config& config() const noexcept { return m_config; }
+  [[nodiscard]] std::shared_ptr<const toml::table> configTable() const noexcept { return m_configTable; }
   [[nodiscard]] bool isLockScreenEnabled() const noexcept { return ::isLockScreenEnabled(m_config.lockscreen); }
   [[nodiscard]] bool shouldLockBeforeSuspend() const noexcept { return ::shouldLockBeforeSuspend(m_config.lockscreen); }
   // Which sections changed in the reload currently being dispatched. Valid while
@@ -246,6 +247,8 @@ private:
 
   Config m_config;
   ConfigChangeSet m_lastChange;
+
+  std::shared_ptr<const toml::table> m_configTable;
 
   // Hand-authored config directory: all *.toml merged alphabetically.
   std::string m_configDir;
