@@ -1118,7 +1118,8 @@ color = "#0000FF"
 blend = false
 )");
     Config config;
-    liftTemplateConfigCustomColors(root, config);
+    Diagnostics diag;
+    liftTemplateConfigCustomColors(root, config, diag);
     if (config.theme.templates.customColors.size() != 2) {
       fail("config.custom_colors lift: expected two custom colors in config");
     }
