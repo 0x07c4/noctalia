@@ -194,6 +194,7 @@ public:
 
 private:
   void loadAll();
+  void applyPendingWatchReload();
   [[nodiscard]] static Config makeDefaultConfig();
   static void
   parseConfigTable(const toml::table& tbl, Config& config, bool logSummary, bool logSchemaDiagnostics = true);
@@ -287,6 +288,10 @@ private:
   Inotify m_inotify;
   int m_configWatchWd = -1;
   int m_overridesWatchWd = -1;
+  // Watch events are coalesced into one reload after a short quiet period.
+  Timer m_watchReloadTimer;
+  bool m_pendingConfigReload = false;
+  bool m_pendingOverridesReload = false;
   struct SymlinkTargetWatch {
     std::string filename;
     bool overrides = false;

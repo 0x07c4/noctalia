@@ -52,7 +52,10 @@ namespace schema = noctalia::config::schema;
 
 namespace {
 
-  constexpr std::uint32_t inotifyMask = IN_MODIFY | IN_CLOSE_WRITE | IN_MOVED_TO | IN_CREATE;
+  // Completed writes, renames, creates (dotfile managers create symlinks) and removals. In-progress
+  // writes (IN_MODIFY) are skipped; the debounce below covers the steps of a multi-step save.
+  constexpr std::uint32_t inotifyMask = IN_CLOSE_WRITE | IN_MOVED_TO | IN_CREATE | IN_DELETE | IN_MOVED_FROM;
+  constexpr std::chrono::milliseconds kWatchReloadDebounce{150};
 
   constexpr Logger kLog("config");
 
@@ -920,15 +923,29 @@ void ConfigService::checkReload() {
     overridesChanged = false;
   }
 
+  if (!configChanged && !overridesChanged) {
+    return;
+  }
+
+  // Editors save in several steps (truncate then write, rename the old file away then write the
+  // new one, write a temp file then rename it over). Reload once the burst settles so a half-saved
+  // or briefly missing file is never applied.
+  m_pendingConfigReload = m_pendingConfigReload || configChanged;
+  m_pendingOverridesReload = m_pendingOverridesReload || overridesChanged;
+  m_watchReloadTimer.start(kWatchReloadDebounce, [this]() { applyPendingWatchReload(); });
+}
+
+void ConfigService::applyPendingWatchReload() {
+  const bool overridesChanged = std::exchange(m_pendingOverridesReload, false);
+  const bool configChanged = std::exchange(m_pendingConfigReload, false) || overridesChanged;
+
   const auto oldDefault = m_defaultWallpaperPath;
   const auto oldLast = m_lastWallpaperPath;
   const auto oldMonitors = m_monitorWallpaperPaths;
 
   if (overridesChanged) {
     kLog.info("reloading {}", m_overridesPath);
-
     loadOverridesFromFile();
-    configChanged = true; // overrides affect Config — rebuild it
   }
 
   if (!configChanged) {
