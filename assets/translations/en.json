@@ -3751,6 +3751,7 @@
       "kind-section-label": "Behavior",
       "label-field": "Label",
       "label-placeholder": "Optional button text",
+      "lockscreen-shortcut-label": "Lock screen shortcut",
       "shortcut-label": "Shortcut",
       "variant": {
         "default": "Default",

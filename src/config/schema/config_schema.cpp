@@ -1699,6 +1699,37 @@ namespace noctalia::config::schema {
                 );
               }
           ),
+          custom<SessionPanelActionConfig>(
+              "lockscreen_shortcut",
+              [](const toml::table& tbl, SessionPanelActionConfig& out, std::string_view parentPath,
+                 Diagnostics& diag) {
+                if (auto v = tbl["lockscreen_shortcut"].value<std::string>()) {
+                  const std::string spec = StringUtils::trim(*v);
+                  if (spec.empty()) {
+                    return;
+                  }
+                  auto chord = parseKeyChordSpec(spec);
+                  if (chord.has_value() && isTextKeyChord(*chord)) {
+                    diag.warn(
+                        joinPath(parentPath, "lockscreen_shortcut"),
+                        "\""
+                            + spec
+                            + "\" types text into the password field; use a non-printable key or a Ctrl/Alt chord"
+                    );
+                    return;
+                  }
+                  out.lockscreenShortcut = chord;
+                } else {
+                  warnWrongType(tbl, "lockscreen_shortcut", parentPath, diag, "a string");
+                }
+              },
+              [](toml::table& tbl, const SessionPanelActionConfig& in) {
+                tbl.insert_or_assign(
+                    "lockscreen_shortcut",
+                    in.lockscreenShortcut.has_value() ? keyChordToString(*in.lockscreenShortcut) : std::string{}
+                );
+              }
+          ),
           field(&SessionPanelActionConfig::countdownSeconds, "countdown_seconds"),
       };
       return s;

@@ -540,6 +540,9 @@ namespace {
               if (item.shortcut.has_value()) {
                 row.insert_or_assign("shortcut", keyChordToString(*item.shortcut));
               }
+              if (item.lockscreenShortcut.has_value()) {
+                row.insert_or_assign("lockscreen_shortcut", keyChordToString(*item.lockscreenShortcut));
+              }
               row.insert_or_assign("countdown_seconds", item.countdownSeconds);
               array.push_back(std::move(row));
             }
