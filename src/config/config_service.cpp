@@ -1976,7 +1976,11 @@ void ConfigService::registerIpc(IpcService& ipc) {
     }
     deepMerge(candidateOverrides, delta);
 
-    const auto baselineDiagnostics = diagnosticsForOverrides(m_overridesTable);
+    if (candidateOverrides == m_overridesTable) {
+      return "ok\n";
+    }
+
+    const auto baselineDiagnostics = diagnosticsForOverrides(m_persistedOverridesTable);
     const auto candidateDiagnostics = diagnosticsForOverrides(candidateOverrides);
     const auto introduced = candidateDiagnostics.introducedDiagnosticsComparedTo(baselineDiagnostics);
     if (!introduced.entries.empty()) {
@@ -1993,7 +1997,10 @@ void ConfigService::registerIpc(IpcService& ipc) {
       oss << "\n";
       return oss.str();
     }
-    if (!commitOverrideTable(candidateOverrides, nullptr)) {
+    if (!commitOverrideTable(
+            std::move(candidateOverrides), nullptr,
+            {.baseline = &baselineDiagnostics, .candidate = &candidateDiagnostics}
+        )) {
       return std::format(
           "error: {}\n", m_lastMutationError.empty() ? "failed to write config overrides" : m_lastMutationError
       );

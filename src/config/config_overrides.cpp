@@ -1224,22 +1224,7 @@ bool ConfigService::setDesktopWidgetsState(const DesktopWidgetsConfig& desktopWi
   desktopWidgetsTbl->insert_or_assign("schema_version", static_cast<std::int64_t>(desktopWidgets.schemaVersion));
   writeWidgetsPlacementToTable(*desktopWidgetsTbl, desktopWidgets.grid, desktopWidgets.widgets);
 
-  if (!validateOverrideMutation(next)) {
-    return false;
-  }
-  toml::table previous = std::move(m_overridesTable);
-  m_overridesTable = std::move(next);
-
-  if (!writeOverridesToFile()) {
-    m_overridesTable = std::move(previous);
-    kLog.warn("failed to write {}", m_overridesPath);
-    return false;
-  }
-
-  m_ownOverridesWritePending = true;
-  loadAll();
-  fireReloadCallbacks();
-  return true;
+  return commitOverrideTable(std::move(next), nullptr);
 }
 
 bool ConfigService::setLockscreenWidgetsState(const LockscreenWidgetsConfig& lockscreenWidgets) {
@@ -1257,22 +1242,7 @@ bool ConfigService::setLockscreenWidgetsState(const LockscreenWidgetsConfig& loc
   sectionTbl->insert_or_assign("schema_version", static_cast<std::int64_t>(lockscreenWidgets.schemaVersion));
   writeWidgetsPlacementToTable(*sectionTbl, lockscreenWidgets.grid, lockscreenWidgets.widgets);
 
-  if (!validateOverrideMutation(next)) {
-    return false;
-  }
-  toml::table previous = std::move(m_overridesTable);
-  m_overridesTable = std::move(next);
-
-  if (!writeOverridesToFile()) {
-    m_overridesTable = std::move(previous);
-    kLog.warn("failed to write {}", m_overridesPath);
-    return false;
-  }
-
-  m_ownOverridesWritePending = true;
-  loadAll();
-  fireReloadCallbacks();
-  return true;
+  return commitOverrideTable(std::move(next), nullptr);
 }
 
 bool ConfigService::markSetupWizardCompleted() {
@@ -1525,10 +1495,8 @@ noctalia::config::schema::Diagnostics ConfigService::diagnosticsForOverrides(con
   return diagnostics;
 }
 
-bool ConfigService::validateOverrideMutation(
-    const toml::table& candidateOverrides, const toml::table* baselineOverrides,
-    const noctalia::config::schema::Diagnostics* candidateDiagnostics
-) {
+bool ConfigService::validateOverrideMutation(const toml::table& candidateOverrides, const OverrideDiagnostics& known) {
+  using Diagnostics = noctalia::config::schema::Diagnostics;
   m_lastMutationError.clear();
   if (!m_overridesParseError.empty()) {
     m_lastMutationError = m_overridesParseError.flatten(m_configDir);
@@ -1536,18 +1504,24 @@ bool ConfigService::validateOverrideMutation(
   }
 
   try {
-    const auto baseline = diagnosticsForOverrides(baselineOverrides != nullptr ? *baselineOverrides : m_overridesTable);
-    const auto computedCandidate = candidateDiagnostics == nullptr ? diagnosticsForOverrides(candidateOverrides)
-                                                                   : noctalia::config::schema::Diagnostics{};
-    const auto& candidate = candidateDiagnostics != nullptr ? *candidateDiagnostics : computedCandidate;
+    std::optional<Diagnostics> computedCandidate;
+    if (known.candidate == nullptr) {
+      computedCandidate = diagnosticsForOverrides(candidateOverrides);
+    }
+    const Diagnostics& candidate = known.candidate != nullptr ? *known.candidate : *computedCandidate;
     const auto fatal = std::ranges::find_if(candidate.entries, [](const auto& entry) {
-      return entry.severity == noctalia::config::schema::Diagnostics::Severity::Error
-          && entry.recoveryScope == noctalia::config::schema::Diagnostics::RecoveryScope::Document;
+      return entry.severity == Diagnostics::Severity::Error
+          && entry.recoveryScope == Diagnostics::RecoveryScope::Document;
     });
     if (fatal != candidate.entries.end()) {
       m_lastMutationError = fatal->describeShort(m_configDir);
       return false;
     }
+    std::optional<Diagnostics> computedBaseline;
+    if (known.baseline == nullptr) {
+      computedBaseline = diagnosticsForOverrides(m_persistedOverridesTable);
+    }
+    const Diagnostics& baseline = known.baseline != nullptr ? *known.baseline : *computedBaseline;
     const auto introduced = candidate.introducedErrorsComparedTo(baseline);
     if (!introduced.entries.empty()) {
       const auto& entry = introduced.entries.front();
@@ -1966,7 +1940,7 @@ bool ConfigService::validateOverride(
     return false;
   }
 
-  const bool valid = validateOverrideMutation(candidate, nullptr, &candidateDiagnostics);
+  const bool valid = validateOverrideMutation(candidate, {.candidate = &candidateDiagnostics});
   if (!valid && error != nullptr) {
     *error = m_lastMutationError;
   }
@@ -2060,21 +2034,18 @@ bool ConfigService::mutateOverrides(
   return commitOverrideTable(std::move(next), changed);
 }
 
-bool ConfigService::commitOverrideTable(toml::table next, bool* changed) {
+bool ConfigService::commitOverrideTable(toml::table next, bool* changed, const OverrideDiagnostics& known) {
   if (next == m_overridesTable) {
     m_lastMutationError.clear();
     return true;
   }
 
-  if (!validateOverrideMutation(next)) {
-    return false;
-  }
-
-  toml::table previous = std::move(m_overridesTable);
+  // writeOverridesToFile validates the new table and restores the persisted one on failure.
   m_overridesTable = std::move(next);
-  if (!writeOverridesToFile()) {
-    m_overridesTable = std::move(previous);
-    kLog.warn("failed to write {}", m_overridesPath);
+  if (!writeOverridesToFile(known)) {
+    if (m_lastMutationError.empty()) {
+      kLog.warn("failed to write {}", m_overridesPath);
+    }
     return false;
   }
 
@@ -2799,11 +2770,12 @@ void ConfigService::applyWallpaperSelection(
   }
 }
 
-bool ConfigService::writeOverridesToFile() {
+bool ConfigService::writeOverridesToFile(const OverrideDiagnostics& known) {
   if (m_overridesPath.empty()) {
+    m_overridesTable = m_persistedOverridesTable;
     return false;
   }
-  if (!validateOverrideMutation(m_overridesTable, &m_persistedOverridesTable)) {
+  if (!validateOverrideMutation(m_overridesTable, known)) {
     m_overridesTable = m_persistedOverridesTable;
     return false;
   }
