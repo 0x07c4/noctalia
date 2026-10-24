@@ -1572,10 +1572,6 @@
         "horizontal": "Horizontal",
         "vertical": "Vertical"
       },
-      "panel-bar-alignment": {
-        "centered": "Centralizado",
-        "near-trigger": "Próximo ao Gatilho"
-      },
       "panel-position": {
         "auto": "Seguir a Barra"
       },

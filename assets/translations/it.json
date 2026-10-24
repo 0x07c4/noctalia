@@ -1572,10 +1572,6 @@
         "horizontal": "Orizzontale",
         "vertical": "Verticale"
       },
-      "panel-bar-alignment": {
-        "centered": "Centrato",
-        "near-trigger": "Vicino al click"
-      },
       "panel-position": {
         "auto": "Segui la barra"
       },

@@ -1385,10 +1385,6 @@
         "horizontal": "Horizontal",
         "vertical": "Vertikal"
       },
-      "panel-bar-alignment": {
-        "centered": "Zentriert",
-        "near-trigger": "Nahe Trigger"
-      },
       "panel-position": {
         "auto": "Leiste folgen"
       },
@@ -2344,7 +2340,7 @@
           "label": "Auto-Paste"
         },
         "launcher-categories": {
-          "description": "Zeige einen Kategoriefilter im Launcher; mit F6 einblenden, danach mit F6 und Shift+F6 wechseln",
+          "description": "Zeige die „Alle“-, „Zuletzt verwendet“- und Kategorie-Chips unter dem Suchfeld an",
           "label": "Kategorien anzeigen"
         },
         "launcher-compact": {
@@ -2376,11 +2372,11 @@
           "label": "Fenster in globaler Suche"
         },
         "launcher-grid": {
-          "description": "Zeige ein Raster von App-Icons mit Beschriftungen darunter, wenn die Ergebnisse ausschließlich Apps sind",
-          "label": "App-Rasteransicht"
+          "description": "Zeige Ergebnisse und die Modulübersicht als Icon-Raster statt als Zeilen an",
+          "label": "Rasteransicht"
         },
         "launcher-pinned-apps": {
-          "description": "Desktop-Entry-IDs von Apps, die im Launcher angeheftet sind; sie erscheinen zuerst, wenn der Launcher geöffnet wird",
+          "description": "Desktop-Entry-IDs, die in manueller Reihenfolge in der Ansicht „Angeheftet“ angezeigt werden",
           "label": "Angeheftete Apps"
         },
         "launcher-prefix-calculator": {
@@ -2409,7 +2405,7 @@
         },
         "launcher-reset-usage": {
           "button": "Zurücksetzen",
-          "description": "Lösche Startzähler und den Verlauf der zuletzt verwendeten Einträge, die für die Launcher-Sortierung genutzt werden",
+          "description": "Lösche den Launcher-Verlauf, der für „Zuletzt verwendet“ und die nutzungsbasierte Sortierung verwendet wird",
           "label": "Nutzungsdaten zurücksetzen"
         },
         "launcher-session-search": {
@@ -2421,7 +2417,7 @@
           "label": "App-Icons anzeigen"
         },
         "launcher-sort-by-usage": {
-          "description": "Schiebe häufig verwendete Apps weiter nach oben und zeige einen Filter für die Kategorie „Zuletzt verwendet“",
+          "description": "Priorisiere häufig verwendete Ergebnisse in der Standardansicht und bei der Suche",
           "label": "Nach Nutzung sortieren"
         },
         "list-item-background": {
@@ -3007,12 +3003,12 @@
           "label": "In Zwischenablage kopieren"
         },
         "screenshot-directory": {
-          "description": "Ordner für gespeicherte PNG-Dateien; leer lassen, um das Standard-XDG-Bilderverzeichnis zu verwenden",
+          "description": "Ordner für gespeicherte Screenshot-Dateien; leer lassen, um das Standard-XDG-Bilderverzeichnis zu verwenden",
           "label": "Ausgabeverzeichnis",
           "placeholder": "XDG-Bilderverzeichnis"
         },
         "screenshot-filename-pattern": {
-          "description": "strftime-Muster ohne Dateiendung (.png wird hinzugefügt); verwende %s für Unix-Epoche",
+          "description": "strftime-Muster ohne Dateiendung (die Endung des Formats wird automatisch hinzugefügt); verwende %s für Unix-Epoche",
           "label": "Dateinamenmuster"
         },
         "screenshot-freeze-screen": {
@@ -3033,7 +3029,7 @@
           "label": "Letzten Bereich merken"
         },
         "screenshot-save-to-file": {
-          "description": "Speichere Screenshots als PNG-Dateien in das Ausgabeverzeichnis",
+          "description": "Speichere Screenshots im gewählten Dateiformat im Ausgabeverzeichnis",
           "label": "In Datei speichern"
         },
         "screenshot-show-cursor": {

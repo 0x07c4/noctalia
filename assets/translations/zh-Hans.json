@@ -41,11 +41,11 @@
       "copy": "复制（Ctrl+C）",
       "cursor": "显示鼠标指针（P）",
       "cursor-capture-failed": "无法切换鼠标指针：合成器未能提供独立的鼠标指针图像",
-      "cursor-live": "请先冻结画面，再切换鼠标指针（F）",
+      "cursor-live": "请先冻结画面，再切换鼠标指针（Z）",
       "cursor-not-captured": "无法切换鼠标指针：合成器不支持单独捕获鼠标指针",
       "done": "完成（Enter）",
-      "fill-off": "填充：关闭",
-      "freeze": "冻结画面（F）",
+      "fill-off": "填充：关闭（F）",
+      "freeze": "冻结画面（Z）",
       "move-toolbar": "拖动工具栏",
       "redo": "重做（Ctrl+Shift+Z）",
       "save": "保存（Ctrl+S）",
@@ -1557,10 +1557,6 @@
       "orientation": {
         "horizontal": "水平",
         "vertical": "垂直"
-      },
-      "panel-bar-alignment": {
-        "centered": "居中",
-        "near-trigger": "触发位置附近"
       },
       "panel-position": {
         "auto": "跟随状态栏"
@@ -3447,7 +3443,7 @@
           "label": "复制到剪贴板"
         },
         "screenshot-directory": {
-          "description": "保存 PNG 文件的文件夹；留空时使用 XDG_PICTURES_DIR 目录",
+          "description": "保存截图文件的文件夹；留空时使用 XDG_PICTURES_DIR 目录",
           "label": "输出目录",
           "placeholder": "XDG_PICTURES_DIR"
         },
@@ -3720,7 +3716,7 @@
         "command-placeholder": "Shell 命令",
         "commands": {
           "annotate": {
-            "description": "在屏幕上标注；按下 F 键或点击“冻结”按钮截取当前画面作为背景",
+            "description": "在屏幕上标注；按下 Z 键或点击“冻结”按钮截取当前画面作为背景",
             "label": "屏幕标注"
           },
           "bar-auto-hide-set": {
@@ -4293,7 +4289,7 @@
           "workspaces-description": "活动工作区胶囊的最小长度，以胶囊厚度为单位；标签可能会超出此长度"
         },
         "album-art-only": {
-          "description": "仅显示圆形专辑封面，不显示曲目标题",
+          "description": "仅显示专辑封面，不显示曲目标题",
           "label": "仅显示专辑封面"
         },
         "anchor": {
@@ -4701,7 +4697,7 @@
           "label": "反向"
         },
         "rotate-album-art": {
-          "description": "媒体播放时旋转圆形专辑封面",
+          "description": "媒体播放时旋转专辑封面",
           "label": "旋转专辑封面"
         },
         "scale": {

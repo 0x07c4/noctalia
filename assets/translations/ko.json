@@ -1431,10 +1431,6 @@
         "horizontal": "가로",
         "vertical": "세로"
       },
-      "panel-bar-alignment": {
-        "centered": "중앙",
-        "near-trigger": "트리거 근처"
-      },
       "panel-position": {
         "auto": "바 따르기"
       },

@@ -1525,10 +1525,6 @@
         "horizontal": "Горизонтально",
         "vertical": "Вертикально"
       },
-      "panel-bar-alignment": {
-        "centered": "По центру",
-        "near-trigger": "Біля місця виклику"
-      },
       "panel-position": {
         "auto": "Біля панелі"
       },
